@@ -1,0 +1,249 @@
+/* OpenCode Desktop Manager: Scoped styling for plugin-contributed UI only */
+
+[data-slot="titlebar-update"]:has(> button[aria-label^="opencode-desktop-manager: "]) {
+  width: max-content;
+  height: 28px;
+  align-self: center;
+  margin-inline-end: 8px;
+  border-radius: 6px;
+  transition: none;
+}
+
+[data-slot="titlebar-update"] > button[aria-label^="opencode-desktop-manager: "] {
+  justify-content: center;
+  gap: 6px;
+  padding-inline: 8px;
+  border-radius: 6px;
+}
+
+[data-slot="titlebar-update"] > button[aria-label^="opencode-desktop-manager: "] > [data-slot="titlebar-update-label"] {
+  opacity: 1;
+  translate: none;
+  transform: none;
+  margin: 0;
+  order: 1;
+  transition: none;
+}
+
+.odm-manager-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.odm-manager-search {
+  margin-bottom: 20px;
+}
+
+.odm-project-group {
+  margin: 8px 0;
+  border: 1px solid var(--border-base, #dce1e7);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.odm-project-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.06));
+  color: var(--text-base, inherit);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.odm-project-chevron {
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.odm-project-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.odm-project-title {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.odm-project-directory {
+  font-size: 10px;
+  color: var(--text-weak, #808b99);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.odm-project-count {
+  font-size: 11px;
+  color: var(--text-weak, #808b99);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-base, rgba(127, 127, 127, 0.06));
+}
+
+.odm-project-content {
+  padding: 4px 8px;
+}
+
+.odm-project-toggle:focus-visible {
+  outline: 2px solid var(--border-focus, #608dd9);
+  outline-offset: -3px;
+}
+
+.odm-favorite-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-base, #dce1e7);
+  border-radius: 6px;
+  background: var(--surface-base, transparent);
+  color: var(--text-base, inherit);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.odm-favorite-star,
+.odm-favorite-button--saved > span:first-child {
+  color: var(--icon-warning-base, #bd8a24);
+}
+
+.odm-favorite-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.odm-favorites {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.odm-favorite-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px 2px 2px;
+  margin: 2px 0;
+  border-radius: 6px;
+}
+
+.odm-favorite-row:hover,
+.odm-favorite-row:focus-within,
+.odm-favorite-button:hover:not(:disabled) {
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.08));
+}
+
+.odm-favorite-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-base, inherit);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.odm-favorite-star {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.odm-favorite-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.odm-favorite-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.odm-favorite-description {
+  color: var(--text-weak, #808b99);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.odm-favorite-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-weak, #808b99);
+  font: inherit;
+  font-size: 22px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.odm-favorite-row:hover .odm-favorite-remove,
+.odm-favorite-row:focus-within .odm-favorite-remove {
+  opacity: 1;
+}
+
+.odm-favorite-remove:hover {
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.12));
+  color: var(--text-base, inherit);
+}
+
+.odm-favorite-button:focus-visible,
+.odm-favorite-open:focus-visible,
+.odm-favorite-remove:focus-visible {
+  outline: 2px solid var(--border-focus, #608dd9);
+  outline-offset: 2px;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .odm-favorite-remove {
+    opacity: 1;
+  }
+}
+
+/* Expanded dialog dimensions for comfortable session management */
+[data-component="dialog-v2"][data-size="x-large"]:has(.odm-manager-dialog) > [data-slot="dialog-container"] {
+  width: min(calc(100vw - 48px), 1280px);
+  height: min(calc(100vh - 64px), 840px);
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 64px);
+}
+
+.odm-manager-dialog {
+  width: 100%;
+  min-width: 0;
+}
