@@ -529,9 +529,10 @@ const definition = Plugin.define({
 
       function updatedDescription(timestamp?: number) {
         if (!timestamp) return ctx.t("settings.notLoaded")
-        const date = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
-          new Date(timestamp),
-        )
+        const d = new Date(timestamp)
+        if (Number.isNaN(d.getTime())) return ctx.t("settings.notLoaded")
+        const pad = (n: number) => String(n).padStart(2, "0")
+        const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
         return ctx.t("settings.updated", { date })
       }
 
