@@ -1,0 +1,188 @@
+/* OpenCode Desktop Manager - Model Tester Styles */
+
+/* Row status badge inserted to the left of the switch */
+[data-slot="settings-row-control"]:has(.odm-model-status) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+}
+
+.odm-model-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: var(--v2-surface-panel, rgba(125, 125, 125, 0.08));
+  border: 1px solid var(--v2-border-subtle, rgba(125, 125, 125, 0.15));
+  color: var(--v2-text-text-muted, #738095);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.odm-model-status:hover {
+  background: var(--v2-surface-hover, rgba(125, 125, 125, 0.15));
+  border-color: var(--v2-border-strong, rgba(125, 125, 125, 0.3));
+  color: var(--v2-text-text-base, #293546);
+  transform: translateY(-0.5px);
+}
+
+.odm-model-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.odm-model-dot--success {
+  background-color: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.55);
+}
+
+.odm-model-dot--error {
+  background-color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.55);
+}
+
+.odm-model-dot--testing {
+  background-color: #eab308;
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.6);
+  animation: odm-pulse 1s infinite ease-in-out;
+}
+
+.odm-model-latency {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.odm-model-status--error .odm-model-latency {
+  color: #ef4444;
+}
+
+.odm-model-status--success .odm-model-latency {
+  color: var(--v2-text-text-base, #334155);
+}
+
+@keyframes odm-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+
+/* Header action container */
+.odm-models-test-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.odm-test-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--v2-border-subtle, rgba(125, 125, 125, 0.2));
+  background: var(--v2-surface-card, #ffffff);
+  color: var(--v2-text-text-base, #1e293b);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.odm-test-btn:hover:not(:disabled) {
+  background: var(--v2-surface-hover, #f8fafc);
+  border-color: var(--v2-border-strong, rgba(125, 125, 125, 0.35));
+}
+
+.odm-test-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.odm-test-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.odm-test-btn--primary {
+  background: var(--v2-interactive-primary, #3b82f6);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.odm-test-btn--primary:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.odm-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 9px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: 1px solid var(--v2-border-subtle, rgba(239, 68, 68, 0.3));
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.odm-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.odm-test-summary {
+  font-size: 11px;
+  color: var(--v2-text-text-muted, #64748b);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.odm-test-summary-dot--success {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.odm-test-summary-dot--failed {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+/* Spinner icon */
+.odm-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: odm-spin 0.75s linear infinite;
+}
+
+@keyframes odm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

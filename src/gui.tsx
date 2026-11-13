@@ -13,6 +13,8 @@ import {
 import { belongsToServer, findFavorite, type Favorite } from "./favorites"
 import { FavoriteButton, FavoriteList } from "./favorites-ui"
 import favoritesCss from "./favorites.css?inline"
+import { setupModelTester, triggerModelTest } from "./model-tester-dom"
+import modelTesterCss from "./model-tester.css?inline"
 import { groupSessionsByProject, type ProjectInfo } from "./project-groups"
 import { ProjectGroupSection } from "./project-group-ui"
 
@@ -26,6 +28,7 @@ const definition = Plugin.define({
       "command.unpinCurrent": "Unfavorite current session",
       "command.clear": "Clear unfavorited sessions",
       "command.openManager": "Open Session Manager",
+      "command.testEnabledModels": "Test Enabled Models",
       "toast.pinned": "Session favorited",
       "toast.unpinned": "Session removed from favorites",
       "toast.clearScanning": "Checking unfavorited sessions…",
@@ -70,6 +73,18 @@ const definition = Plugin.define({
       "clear.confirm": "Delete sessions",
       "error.load": "Could not load sessions from the active OpenCode service.",
       "error.open": "Could not open this session. Check its server connection; the session may have been deleted.",
+      "modelTest.button": "Test Enabled Models",
+      "modelTest.testing": "Testing ({{current}}/{{total}})...",
+      "modelTest.retest": "Retest Enabled Models",
+      "modelTest.cancel": "Cancel",
+      "modelTest.status.testing": "Testing",
+      "modelTest.status.unavailable": "Unavailable",
+      "modelTest.tooltip.success": "Status: Functional\nLatency: {{latency}}\nTested: {{time}}",
+      "modelTest.tooltip.error": "Status: Unavailable ({{error}})\nLatency: {{latency}}\nTested: {{time}}",
+      "modelTest.toast.scanning": "Testing enabled models...",
+      "modelTest.toast.noneEnabled": "No enabled models found to test",
+      "modelTest.toast.allSuccess": "All {{total}} enabled models passed testing",
+      "modelTest.toast.complete": "Model test complete: {{success}} passed, {{failed}} failed",
     },
   },
   stores: {
@@ -101,6 +116,8 @@ const definition = Plugin.define({
     let managerDialog: DialogHandle | undefined
 
     ctx.add(Style, favoritesCss)
+    ctx.add(Style, modelTesterCss)
+    setupModelTester(ctx)
 
     const builtinServer = () => ctx.servers.list().map((id) => ctx.servers.get(id)).find((server) => server?.builtin)
     const pinned = () => ctx.stores.state.value.pinned
@@ -343,6 +360,17 @@ const definition = Plugin.define({
       title: ctx.t("command.openManager"),
       group: ctx.t("command.group"),
       run: openManager,
+    }))
+
+    ctx.add(Command, () => ({
+      id: "test-enabled-models",
+      title: ctx.t("command.testEnabledModels"),
+      group: ctx.t("command.group"),
+      run: () => {
+        if (triggerModelTest) {
+          void triggerModelTest()
+        }
+      },
     }))
 
     function openManager() {
