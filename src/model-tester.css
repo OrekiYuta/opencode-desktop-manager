@@ -1,13 +1,5 @@
 /* OpenCode Desktop Manager - Model Tester Styles */
 
-/* Row status badge inserted to the left of the switch */
-[data-slot="settings-row-control"]:has(.odm-model-status) {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-end !important;
-  gap: 10px !important;
-}
-
 .odm-model-status {
   display: inline-flex;
   align-items: center;
@@ -19,18 +11,30 @@
   background: var(--v2-surface-panel, rgba(125, 125, 125, 0.08));
   border: 1px solid var(--v2-border-subtle, rgba(125, 125, 125, 0.15));
   color: var(--v2-text-text-muted, #738095);
-  cursor: pointer;
   user-select: none;
   transition: all 0.15s ease;
   white-space: nowrap;
   line-height: 1;
+  flex-shrink: 0;
 }
 
-.odm-model-status:hover {
+.odm-model-status--interactive {
+  margin-inline-end: 8px;
+  cursor: pointer;
+}
+
+.odm-model-status--interactive:hover {
   background: var(--v2-surface-hover, rgba(125, 125, 125, 0.15));
   border-color: var(--v2-border-strong, rgba(125, 125, 125, 0.3));
   color: var(--v2-text-text-base, #293546);
   transform: translateY(-0.5px);
+}
+
+.odm-model-status--interactive:focus-visible,
+.odm-test-btn:focus-visible,
+.odm-cancel-btn:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus, #3b82f6);
+  outline-offset: 2px;
 }
 
 .odm-model-dot {
@@ -83,10 +87,22 @@
 
 /* Header action container */
 .odm-models-test-bar {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.odm-models-test-bar--settings {
+  align-self: stretch;
+  justify-content: flex-end;
+}
+
+.odm-models-test-bar--manage {
+  padding: 4px 6px;
 }
 
 .odm-test-btn {
@@ -105,6 +121,8 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.15s ease;
   user-select: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .odm-test-btn:hover:not(:disabled) {
@@ -155,9 +173,10 @@
   font-size: 11px;
   color: var(--v2-text-text-muted, #64748b);
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
-  white-space: nowrap;
+  max-width: 100%;
 }
 
 .odm-test-summary-dot--success {
@@ -189,28 +208,46 @@
 
 /* Selector item badge */
 .odm-model-status--selector {
-  margin-left: auto;
-  margin-right: 8px;
+  margin-inline: 0 4px;
+  max-width: min(160px, 30%);
   flex-shrink: 0;
   font-size: 10px;
   padding: 2px 7px;
   line-height: 1.2;
 }
 
-/* Model selector popup sizing enhancement: wider and taller to reduce scrolling */
-div:has(> * input[placeholder*="搜索模型"]),
-div:has(> * input[placeholder*="Search models"]),
-div:has(input[placeholder*="搜索模型"]),
-div:has(input[placeholder*="Search models"]),
-[data-radix-popper-content-wrapper]:has(input[placeholder*="搜索模型"]),
-[data-radix-popper-content-wrapper]:has(input[placeholder*="Search models"]) {
-  min-width: 640px !important;
-  width: 640px !important;
-  max-width: min(95vw, 760px) !important;
-  max-height: min(88vh, 850px) !important;
+.odm-model-status--selector .odm-model-latency {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.odm-enhanced-selector-list {
-  max-height: min(74vh, 720px) !important;
+/* The native search action slot preserves the dialog's keyboard focus behavior. */
+.odm-models-test-bar--selector {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-inline-start: 4px;
 }
 
+.odm-models-test-bar--selector .odm-test-btn,
+.odm-models-test-bar--selector .odm-cancel-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  justify-content: center;
+}
+
+.odm-models-test-bar--selector .odm-test-btn-label,
+.odm-models-test-bar--selector .odm-test-summary {
+  display: none;
+}
+
+/*
+ * Size only the confirmed model dialog's immediate container. The fixed
+ * dialog-v2 overlay retains native centering, and its flex/scroll descendants
+ * handle the available height. Specificity also survives lazy-loaded host CSS.
+ */
+[data-component="dialog-v2"] > [data-slot="dialog-container"].odm-model-selector-container:has(> [data-slot="dialog-content"].model-dialog) {
+  width: min(640px, calc(100% - 24px));
+  height: 80%;
+}

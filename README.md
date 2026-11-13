@@ -58,7 +58,7 @@ Requires Node.js (v20+) and an OpenCode Desktop release supporting the V2 GUI pl
 npm install
 
 # Build CommonJS bundle for OpenCode Desktop
-npm run build
+npm run compile
 
 # Watch mode for local development
 npm run dev
@@ -76,6 +76,11 @@ npm test
 # Launch browser UI fixture
 npm run test:ui
 ```
+
+Open `http://127.0.0.1:5188/tests/model-tester.html` and click **Run regression checks**
+to verify the model tester against the OpenCode 2.3 dialog/settings DOM structure.
+The fixture uses a mock model service and covers centered/responsive sizing, scoped
+badges and controls, search updates, cancellation, and plugin cleanup.
 
 ## License
 
