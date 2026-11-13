@@ -198,15 +198,19 @@
 }
 
 /* Model selector popup sizing enhancement: wider and taller to reduce scrolling */
-.odm-enhanced-selector-popup,
-:has(> * > input[placeholder*="搜索模型"]),
-:has(> * > input[placeholder*="Search models"]) {
-  min-width: 580px !important;
-  max-width: min(92vw, 680px) !important;
-  max-height: min(85vh, 820px) !important;
+div:has(> * input[placeholder*="搜索模型"]),
+div:has(> * input[placeholder*="Search models"]),
+div:has(input[placeholder*="搜索模型"]),
+div:has(input[placeholder*="Search models"]),
+[data-radix-popper-content-wrapper]:has(input[placeholder*="搜索模型"]),
+[data-radix-popper-content-wrapper]:has(input[placeholder*="Search models"]) {
+  min-width: 640px !important;
+  width: 640px !important;
+  max-width: min(95vw, 760px) !important;
+  max-height: min(88vh, 850px) !important;
 }
 
 .odm-enhanced-selector-list {
-  max-height: min(72vh, 720px) !important;
+  max-height: min(74vh, 720px) !important;
 }
 

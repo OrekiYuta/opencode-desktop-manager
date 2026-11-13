@@ -322,6 +322,42 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
     }
   }
 
+  function findFloatingPopover(input: HTMLElement): HTMLElement {
+    let current: HTMLElement | null = input.parentElement
+    let candidate: HTMLElement | null = null
+
+    while (current && current !== document.body) {
+      const style = window.getComputedStyle(current)
+      if (
+        style.position === "fixed" ||
+        style.position === "absolute" ||
+        current.hasAttribute("data-radix-popper-content-wrapper") ||
+        current.hasAttribute("data-floating-ui-portal") ||
+        current.getAttribute("role") === "dialog" ||
+        current.getAttribute("role") === "menu" ||
+        current.classList.contains("popover") ||
+        current.classList.contains("dropdown")
+      ) {
+        candidate = current
+        if (
+          current.parentElement &&
+          (window.getComputedStyle(current.parentElement).position === "fixed" ||
+            window.getComputedStyle(current.parentElement).position === "absolute")
+        ) {
+          candidate = current.parentElement
+        }
+        break
+      }
+      current = current.parentElement
+    }
+
+    return (
+      candidate ||
+      input.closest('div.fixed, div.absolute') ||
+      (input.parentElement?.parentElement?.parentElement as HTMLElement)
+    )
+  }
+
   // Model Selector Dialog Enhancements
   function findModelSelectorPopups(): HTMLElement[] {
     const popups: HTMLElement[] = []
@@ -329,10 +365,10 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
     for (const input of inputs) {
       const ph = input.placeholder || input.getAttribute("data-placeholder") || input.getAttribute("aria-label") || ""
       if (/搜索模型|search models/i.test(ph)) {
-        const dialog = input.closest<HTMLElement>(
-          '[role="dialog"], [role="menu"], [class*="dialog"], [class*="popover"], [class*="modal"], [class*="dropdown"]',
-        )
-        const container = dialog || input.parentElement?.parentElement?.parentElement
+        if (input.closest('.settings-models, [data-tab="models"], [data-section="models"]')) {
+          continue
+        }
+        const container = findFloatingPopover(input)
         if (container && container !== document.body && !popups.includes(container)) {
           popups.push(container)
         }
@@ -341,80 +377,82 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
     return popups
   }
 
-  function enhanceSelectorPopupSizing(popup: HTMLElement) {
-    popup.classList.add("odm-enhanced-selector-popup")
-    popup.style.setProperty("min-width", "580px", "important")
-    popup.style.setProperty("max-height", "min(85vh, 820px)", "important")
+  function enhanceSelectorPopupSizing(popover: HTMLElement) {
+    popover.classList.add("odm-enhanced-selector-popup")
+    popover.style.setProperty("min-width", "640px", "important")
+    popover.style.setProperty("width", "640px", "important")
+    popover.style.setProperty("max-width", "95vw", "important")
+    popover.style.setProperty("max-height", "min(88vh, 850px)", "important")
 
-    // Find scrollable list container inside popup and lengthen it
-    const scrollable = popup.querySelectorAll<HTMLElement>('div, ul, [role="listbox"]')
-    for (const el of scrollable) {
-      const overflowY = window.getComputedStyle(el).overflowY
-      if (overflowY === "auto" || overflowY === "scroll" || el.scrollHeight > 250) {
-        el.classList.add("odm-enhanced-selector-list")
-        el.style.setProperty("max-height", "min(72vh, 720px)", "important")
-      }
-    }
-  }
+    let walk: HTMLElement | null = popover
+    for (let i = 0; i < 4; i++) {
+      if (!walk || walk === document.body) break
+      walk.style.setProperty("min-width", "640px", "important")
+      walk.style.setProperty("width", "100%", "important")
+      walk.style.setProperty("max-width", "none", "important")
 
-  function findItemsInSelectorPopup(popup: HTMLElement): HTMLElement[] {
-    const itemSet = new Set<HTMLElement>()
-
-    const candidates = Array.from(
-      popup.querySelectorAll<HTMLElement>('button, [role="menuitem"], [role="option"], li, div[class*="item"]'),
-    )
-
-    for (const el of candidates) {
-      if (el.closest('.odm-models-test-bar, .odm-header-actions, .odm-model-status')) continue
-      const text = (el.textContent || "").trim()
-      if (text.length > 0 && text.length < 120) {
-        if (cachedModels.some((m) => text.toLowerCase().includes(m.name?.toLowerCase()))) {
-          itemSet.add(el)
+      const scrollables = walk.querySelectorAll<HTMLElement>('div, ul, [role="listbox"]')
+      for (const s of Array.from(scrollables)) {
+        const overflowY = window.getComputedStyle(s).overflowY
+        if (overflowY === "auto" || overflowY === "scroll" || s.scrollHeight > 250) {
+          s.style.setProperty("max-height", "min(74vh, 720px)", "important")
         }
       }
+      walk = walk.firstElementChild as HTMLElement
     }
-
-    return Array.from(itemSet)
   }
 
-  function resolveModelForSelectorItem(item: HTMLElement): ModelTarget | undefined {
-    const clone = item.cloneNode(true) as HTMLElement
-    clone.querySelectorAll('.odm-model-status').forEach((el) => el.remove())
-    const itemText = clone.textContent?.trim().toLowerCase() || ""
-    if (!itemText) return undefined
+  function findModelItemElements(popup: HTMLElement): { el: HTMLElement; model: ModelTarget }[] {
+    const matches: { el: HTMLElement; model: ModelTarget }[] = []
+    const seenElements = new Set<HTMLElement>()
 
-    const sortedModels = [...cachedModels].sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0))
+    const allNodes = Array.from(popup.querySelectorAll<HTMLElement>('*')).filter((node) => {
+      if (node.closest('.odm-models-test-bar, .odm-header-actions, .odm-model-status, input')) return false
+      return true
+    })
 
-    // 1. Match both model name and provider
-    for (const m of sortedModels) {
-      const mName = m.name?.trim().toLowerCase()
-      const mProv = m.providerID?.trim().toLowerCase()
-      if (mName && itemText.includes(mName)) {
-        if (mProv && itemText.includes(mProv)) {
-          return {
-            id: m.id,
-            modelID: m.modelID,
-            providerID: m.providerID,
-            name: m.name,
+    for (const m of cachedModels) {
+      if (!m.name) continue
+      const targetName = m.name.toLowerCase()
+
+      for (const node of allNodes) {
+        if (seenElements.has(node)) continue
+        if (node.children.length <= 4) {
+          const text = (node.textContent || "").trim().toLowerCase()
+          if (text.includes(targetName)) {
+            let row: HTMLElement = node
+            let parent = node.parentElement
+            while (parent && parent !== popup && parent !== document.body) {
+              const pText = (parent.textContent || "").trim()
+              if (
+                pText.length < 150 &&
+                (pText.toLowerCase().includes(targetName) || pText.toLowerCase().includes(m.id.toLowerCase()))
+              ) {
+                row = parent
+                parent = parent.parentElement
+              } else {
+                break
+              }
+            }
+
+            if (!seenElements.has(row)) {
+              seenElements.add(row)
+              matches.push({
+                el: row,
+                model: {
+                  id: m.id,
+                  modelID: m.modelID,
+                  providerID: m.providerID,
+                  name: m.name,
+                },
+              })
+            }
           }
         }
       }
     }
 
-    // 2. Match model name
-    for (const m of sortedModels) {
-      const mName = m.name?.trim().toLowerCase()
-      if (mName && itemText.includes(mName)) {
-        return {
-          id: m.id,
-          modelID: m.modelID,
-          providerID: m.providerID,
-          name: m.name,
-        }
-      }
-    }
-
-    return undefined
+    return matches
   }
 
   function renderSelectorItemBadge(item: HTMLElement, result: ModelTestResult, model: ModelTarget) {
@@ -428,7 +466,6 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
       badge = document.createElement("div")
       badge.className = "odm-model-status odm-model-status--selector"
 
-      // If item has a trailing tag or arrow, insert before it; otherwise append
       const trailing = item.querySelector<HTMLElement>('[class*="arrow"], [class*="chevron"], svg:last-child')
       if (trailing && trailing.parentElement === item) {
         item.insertBefore(badge, trailing)
@@ -439,6 +476,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
 
     item.style.display = "flex"
     item.style.alignItems = "center"
+    item.style.justifyContent = "space-between"
 
     badge.dataset.modelKey = result.key
     badge.className = `odm-model-status odm-model-status--selector odm-model-status--${result.status}`
@@ -479,14 +517,12 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
     for (const popup of popups) {
       enhanceSelectorPopupSizing(popup)
 
-      const items = findItemsInSelectorPopup(popup)
-      for (const item of items) {
-        const model = resolveModelForSelectorItem(item)
-        if (!model) continue
+      const matches = findModelItemElements(popup)
+      for (const { el, model } of matches) {
         const key = modelKey(model.providerID, model.modelID)
         const res = results.get(key)
         if (res) {
-          renderSelectorItemBadge(item, res, model)
+          renderSelectorItemBadge(el, res, model)
         }
       }
     }
