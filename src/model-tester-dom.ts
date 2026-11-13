@@ -4,7 +4,6 @@ import {
   findModelForElement,
   formatDateTime,
   formatLatency,
-  formatTime,
   modelKey,
   testMultipleModels,
   testSingleModel,
@@ -14,8 +13,34 @@ import {
 
 export let triggerModelTest: (() => Promise<void>) | null = null
 
+const STORAGE_KEY = "opencode:model-test-results:v1"
+
+function loadStoredResults(): Map<string, ModelTestResult> {
+  const map = new Map<string, ModelTestResult>()
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as [string, ModelTestResult][]
+      for (const [k, v] of parsed) {
+        map.set(k, v)
+      }
+    }
+  } catch {
+    // Non-blocking
+  }
+  return map
+}
+
+function saveStoredResults(map: Map<string, ModelTestResult>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...map.entries()]))
+  } catch {
+    // Non-blocking
+  }
+}
+
 export function setupModelTester(ctx: SetupContext<any>): () => void {
-  const results = new Map<string, ModelTestResult>()
+  const results = loadStoredResults()
   let isTesting = false
   let testedCount = 0
   let totalCount = 0
@@ -274,6 +299,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
       modelName: model.name,
       status: "testing",
     })
+    saveStoredResults(results)
     updateAllBadges()
 
     try {
@@ -290,14 +316,184 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
         testedAt: Date.now(),
       })
     } finally {
+      saveStoredResults(results)
       updateAllBadges()
       updateHeaderBar()
     }
   }
 
-  function updateAllBadges() {
-    if (!isModelsPageOpen()) return
+  // Model Selector Dialog Enhancements
+  function findModelSelectorPopups(): HTMLElement[] {
+    const popups: HTMLElement[] = []
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input'))
+    for (const input of inputs) {
+      const ph = input.placeholder || input.getAttribute("data-placeholder") || input.getAttribute("aria-label") || ""
+      if (/搜索模型|search models/i.test(ph)) {
+        const dialog = input.closest<HTMLElement>(
+          '[role="dialog"], [role="menu"], [class*="dialog"], [class*="popover"], [class*="modal"], [class*="dropdown"]',
+        )
+        const container = dialog || input.parentElement?.parentElement?.parentElement
+        if (container && container !== document.body && !popups.includes(container)) {
+          popups.push(container)
+        }
+      }
+    }
+    return popups
+  }
 
+  function enhanceSelectorPopupSizing(popup: HTMLElement) {
+    popup.classList.add("odm-enhanced-selector-popup")
+    popup.style.setProperty("min-width", "580px", "important")
+    popup.style.setProperty("max-height", "min(85vh, 820px)", "important")
+
+    // Find scrollable list container inside popup and lengthen it
+    const scrollable = popup.querySelectorAll<HTMLElement>('div, ul, [role="listbox"]')
+    for (const el of scrollable) {
+      const overflowY = window.getComputedStyle(el).overflowY
+      if (overflowY === "auto" || overflowY === "scroll" || el.scrollHeight > 250) {
+        el.classList.add("odm-enhanced-selector-list")
+        el.style.setProperty("max-height", "min(72vh, 720px)", "important")
+      }
+    }
+  }
+
+  function findItemsInSelectorPopup(popup: HTMLElement): HTMLElement[] {
+    const itemSet = new Set<HTMLElement>()
+
+    const candidates = Array.from(
+      popup.querySelectorAll<HTMLElement>('button, [role="menuitem"], [role="option"], li, div[class*="item"]'),
+    )
+
+    for (const el of candidates) {
+      if (el.closest('.odm-models-test-bar, .odm-header-actions, .odm-model-status')) continue
+      const text = (el.textContent || "").trim()
+      if (text.length > 0 && text.length < 120) {
+        if (cachedModels.some((m) => text.toLowerCase().includes(m.name?.toLowerCase()))) {
+          itemSet.add(el)
+        }
+      }
+    }
+
+    return Array.from(itemSet)
+  }
+
+  function resolveModelForSelectorItem(item: HTMLElement): ModelTarget | undefined {
+    const clone = item.cloneNode(true) as HTMLElement
+    clone.querySelectorAll('.odm-model-status').forEach((el) => el.remove())
+    const itemText = clone.textContent?.trim().toLowerCase() || ""
+    if (!itemText) return undefined
+
+    const sortedModels = [...cachedModels].sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0))
+
+    // 1. Match both model name and provider
+    for (const m of sortedModels) {
+      const mName = m.name?.trim().toLowerCase()
+      const mProv = m.providerID?.trim().toLowerCase()
+      if (mName && itemText.includes(mName)) {
+        if (mProv && itemText.includes(mProv)) {
+          return {
+            id: m.id,
+            modelID: m.modelID,
+            providerID: m.providerID,
+            name: m.name,
+          }
+        }
+      }
+    }
+
+    // 2. Match model name
+    for (const m of sortedModels) {
+      const mName = m.name?.trim().toLowerCase()
+      if (mName && itemText.includes(mName)) {
+        return {
+          id: m.id,
+          modelID: m.modelID,
+          providerID: m.providerID,
+          name: m.name,
+        }
+      }
+    }
+
+    return undefined
+  }
+
+  function renderSelectorItemBadge(item: HTMLElement, result: ModelTestResult, model: ModelTarget) {
+    const allBadges = Array.from(item.querySelectorAll<HTMLElement>(".odm-model-status"))
+    let badge = allBadges[0]
+    for (let i = 1; i < allBadges.length; i++) {
+      allBadges[i].remove()
+    }
+
+    if (!badge) {
+      badge = document.createElement("div")
+      badge.className = "odm-model-status odm-model-status--selector"
+
+      // If item has a trailing tag or arrow, insert before it; otherwise append
+      const trailing = item.querySelector<HTMLElement>('[class*="arrow"], [class*="chevron"], svg:last-child')
+      if (trailing && trailing.parentElement === item) {
+        item.insertBefore(badge, trailing)
+      } else {
+        item.appendChild(badge)
+      }
+    }
+
+    item.style.display = "flex"
+    item.style.alignItems = "center"
+
+    badge.dataset.modelKey = result.key
+    badge.className = `odm-model-status odm-model-status--selector odm-model-status--${result.status}`
+
+    const dot = document.createElement("span")
+    dot.className = `odm-model-dot odm-model-dot--${result.status}`
+
+    const text = document.createElement("span")
+    text.className = "odm-model-latency"
+
+    if (result.status === "testing") {
+      text.textContent = ctx.t("modelTest.status.testing")
+      badge.title = `${model.name} (${model.providerID})\n${ctx.t("modelTest.status.testing")}`
+    } else if (result.status === "success") {
+      const lat = formatLatency(result.latency)
+      text.textContent = lat
+      const timeStr = formatDateTime(result.testedAt)
+      badge.title = `${model.name} (${model.providerID})\n${ctx.t("modelTest.tooltip.success", {
+        latency: lat,
+        time: timeStr,
+      })}`
+    } else if (result.status === "error") {
+      const lat = result.latency ? formatLatency(result.latency) : ""
+      text.textContent = lat ? `${ctx.t("modelTest.status.unavailable")} ${lat}` : ctx.t("modelTest.status.unavailable")
+      const timeStr = formatDateTime(result.testedAt)
+      badge.title = `${model.name} (${model.providerID})\n${ctx.t("modelTest.tooltip.error", {
+        error: result.error || "Unknown error",
+        latency: lat || "N/A",
+        time: timeStr,
+      })}`
+    }
+
+    badge.replaceChildren(dot, text)
+  }
+
+  function updateSelectorBadges() {
+    const popups = findModelSelectorPopups()
+    for (const popup of popups) {
+      enhanceSelectorPopupSizing(popup)
+
+      const items = findItemsInSelectorPopup(popup)
+      for (const item of items) {
+        const model = resolveModelForSelectorItem(item)
+        if (!model) continue
+        const key = modelKey(model.providerID, model.modelID)
+        const res = results.get(key)
+        if (res) {
+          renderSelectorItemBadge(item, res, model)
+        }
+      }
+    }
+  }
+
+  function updateAllBadges() {
+    // 1. Update Settings > Models rows
     const rows = findModelRows()
     for (const row of rows) {
       const model = resolveModelForRow(row)
@@ -308,6 +504,9 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
         renderStatusBadge(row, res, model)
       }
     }
+
+    // 2. Update Model Selector Dialog items
+    updateSelectorBadges()
   }
 
   function renderBarContent(bar: HTMLElement) {
@@ -375,7 +574,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
       cancelBtn.remove()
     }
 
-    // Summary Text
+    // Summary Text with Full Date (YYYY-MM-DD HH:mm:ss)
     let sumSpan = bar.querySelector<HTMLElement>(".odm-test-summary")
     if (!isTesting && summary.total > 0) {
       if (!sumSpan) {
@@ -392,7 +591,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
       failSpan.className = "odm-test-summary-dot--failed"
       failSpan.textContent = `✗ ${summary.failed}`
 
-      const timeText = summary.testedAt ? formatTime(summary.testedAt) : ""
+      const timeText = summary.testedAt ? formatDateTime(summary.testedAt) : ""
       sumSpan.append(
         succSpan,
         document.createTextNode(" · "),
@@ -414,11 +613,9 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
 
         let bar = headerContainer.querySelector<HTMLElement>(".odm-models-test-bar")
         if (bar) {
-          // Already mounted!
           return
         }
 
-        // Clean up any stale orphaned test bars
         const staleBars = document.querySelectorAll<HTMLElement>(".odm-models-test-bar")
         staleBars.forEach((stale) => {
           if (!headerContainer.contains(stale)) stale.remove()
@@ -442,7 +639,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
       }
     }
 
-    // Fallback strategy: Attach near Search Input
+    // Fallback: Attach near Search Input (e.g. inside Model Selector Dialog)
     const searchInput = findModelsSearchInput()
     if (searchInput) {
       const searchBox = searchInput.closest("div") || searchInput.parentElement
@@ -497,7 +694,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
     try {
       await refreshModelMetadata()
 
-      // Expand accordion sections in the models panel
+      // Expand accordion sections in the models panel if on Settings page
       const modelsTitle = findModelsHeaderTitle()
       const modelsContainer = modelsTitle?.closest('main, [role="tabpanel"], div')
       if (modelsContainer) {
@@ -570,6 +767,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
         })
       }
 
+      saveStoredResults(results)
       updateAllBadges()
       updateHeaderBar()
 
@@ -580,6 +778,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
         signal: abortController.signal,
         onModelResult(result) {
           results.set(result.key, result)
+          saveStoredResults(results)
           testedCount++
           updateAllBadges()
           updateHeaderBar()
@@ -614,6 +813,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
     } finally {
       isTesting = false
       abortController = null
+      saveStoredResults(results)
       updateAllBadges()
       updateHeaderBar()
     }
@@ -623,7 +823,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
     await testAllEnabledModels()
   }
 
-  // MutationObserver & Timer to watch for Settings > Models being open or modified
+  // MutationObserver & Timer to watch for Settings > Models or Model Selector dialog being open
   let checkScheduled = false
   function onDomMutated() {
     if (checkScheduled) return
@@ -640,7 +840,7 @@ export function setupModelTester(ctx: SetupContext<any>): () => void {
   const observer = new MutationObserver(onDomMutated)
   observer.observe(document.body, { childList: true, subtree: true, attributes: true })
 
-  // 300ms fallback interval to guarantee mounting across tab navigation
+  // 300ms fallback interval to guarantee mounting across tab navigation and popup opening
   const timer = setInterval(() => {
     if (isModelsPageOpen()) {
       ensureHeaderBar()

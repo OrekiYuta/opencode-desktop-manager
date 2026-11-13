@@ -186,3 +186,27 @@
     transform: rotate(360deg);
   }
 }
+
+/* Selector item badge */
+.odm-model-status--selector {
+  margin-left: auto;
+  margin-right: 8px;
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 2px 7px;
+  line-height: 1.2;
+}
+
+/* Model selector popup sizing enhancement: wider and taller to reduce scrolling */
+.odm-enhanced-selector-popup,
+:has(> * > input[placeholder*="搜索模型"]),
+:has(> * > input[placeholder*="Search models"]) {
+  min-width: 580px !important;
+  max-width: min(92vw, 680px) !important;
+  max-height: min(85vh, 820px) !important;
+}
+
+.odm-enhanced-selector-list {
+  max-height: min(72vh, 720px) !important;
+}
+
