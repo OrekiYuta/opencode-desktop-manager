@@ -7,6 +7,7 @@ import {
   formatDateTime,
   computeSummary,
   findModelForElement,
+  isFreeUsageLimitError,
   testSingleModel,
   testMultipleModels,
 } from "../src/model-tester.ts"
@@ -124,6 +125,149 @@ test("testSingleModel handles client failure as error result", async () => {
 
   assert.equal(result.status, "error")
   assert.equal(result.error, "API Key Invalid")
+})
+
+test("isFreeUsageLimitError recognizes the OpenCode free-tier rejection", () => {
+  assert.equal(isFreeUsageLimitError("Free usage limit reached. Free models work in OpenCode"), true)
+  assert.equal(isFreeUsageLimitError(new Error("Free usage limit reached. Free models work in OpenCode")), true)
+  assert.equal(isFreeUsageLimitError(new Error("API Key Invalid")), false)
+  assert.equal(isFreeUsageLimitError(undefined), false)
+})
+
+test("testSingleModel falls back to a temporary session on the free usage limit", async () => {
+  const calls = []
+  const mockClient = {
+    experimental: {
+      generate: {
+        text: async () => {
+          throw new Error("Free usage limit reached. Free models work in OpenCode (https://opencode.ai)")
+        },
+      },
+    },
+    session: {
+      create: async ({ title, model }) => {
+        calls.push({ step: "create", title, model })
+        return { id: "ses_probe" }
+      },
+      generate: async ({ sessionID, prompt }) => {
+        calls.push({ step: "generate", sessionID, prompt })
+        return { text: "2" }
+      },
+      remove: async ({ sessionID }) => {
+        calls.push({ step: "remove", sessionID })
+      },
+    },
+  }
+
+  const model = { id: "deepseek-free", modelID: "deepseek-free", providerID: "opencode", name: "DeepSeek Free" }
+  const result = await testSingleModel(mockClient, model)
+
+  assert.equal(result.status, "success")
+  assert.equal(result.reply, "2")
+  assert.ok(result.latency && result.latency > 0)
+  assert.deepEqual(calls.map((call) => call.step), ["create", "generate", "remove"])
+  assert.equal(calls[0].model.id, "deepseek-free")
+  assert.equal(calls[0].model.providerID, "opencode")
+  assert.equal(calls[1].sessionID, "ses_probe")
+  assert.equal(calls[2].sessionID, "ses_probe")
+})
+
+test("testSingleModel removes the probe session when the fallback fails", async () => {
+  const removed = []
+  const mockClient = {
+    experimental: {
+      generate: {
+        text: async () => {
+          throw new Error("Free usage limit reached. Free models work in OpenCode (https://opencode.ai)")
+        },
+      },
+    },
+    session: {
+      create: async () => ({ id: "ses_probe" }),
+      generate: async () => {
+        throw new Error("Quota still exhausted")
+      },
+      remove: async ({ sessionID }) => {
+        removed.push(sessionID)
+      },
+    },
+  }
+
+  const model = { id: "deepseek-free", modelID: "deepseek-free", providerID: "opencode", name: "DeepSeek Free" }
+  const result = await testSingleModel(mockClient, model)
+
+  assert.equal(result.status, "error")
+  assert.equal(result.error, "Quota still exhausted")
+  assert.deepEqual(removed, ["ses_probe"])
+})
+
+test("testSingleModel does not create a session for unrelated errors", async () => {
+  let created = false
+  const mockClient = {
+    experimental: {
+      generate: {
+        text: async () => {
+          throw new Error("API Key Invalid")
+        },
+      },
+    },
+    session: {
+      create: async () => {
+        created = true
+        return { id: "ses_probe" }
+      },
+      generate: async () => ({ text: "2" }),
+      remove: async () => {},
+    },
+  }
+
+  const model = { id: "deepseek-free", modelID: "deepseek-free", providerID: "opencode", name: "DeepSeek Free" }
+  const result = await testSingleModel(mockClient, model)
+
+  assert.equal(result.status, "error")
+  assert.equal(result.error, "API Key Invalid")
+  assert.equal(created, false)
+})
+
+test("testSingleModel keeps the free usage limit error when no session API exists", async () => {
+  const mockClient = {
+    experimental: {
+      generate: {
+        text: async () => {
+          throw new Error("Free usage limit reached. Free models work in OpenCode (https://opencode.ai)")
+        },
+      },
+    },
+  }
+
+  const model = { id: "deepseek-free", modelID: "deepseek-free", providerID: "opencode", name: "DeepSeek Free" }
+  const result = await testSingleModel(mockClient, model)
+
+  assert.equal(result.status, "error")
+  assert.match(result.error, /free usage limit/i)
+})
+
+test("testSingleModel reports a missing stateless API instead of guessing", async () => {
+  let created = false
+  const mockClient = {
+    session: {
+      create: async () => {
+        created = true
+        return { id: "ses_probe" }
+      },
+      generate: async () => ({ text: "2" }),
+      remove: async () => {},
+    },
+  }
+
+  const model = { id: "gpt-4o", modelID: "gpt-4o", providerID: "openai", name: "GPT-4o" }
+  const result = await testSingleModel(mockClient, model)
+
+  // Without a stateless call there is no free-limit error to match, so the
+  // original "generate.text API unavailable" error is reported.
+  assert.equal(result.status, "error")
+  assert.match(result.error, /generate\.text API unavailable/)
+  assert.equal(created, false)
 })
 
 test("testMultipleModels tests models concurrently and calls callbacks", async () => {

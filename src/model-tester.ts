@@ -52,27 +52,37 @@ export function formatDateTime(timestamp?: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
+interface MinimalGenerateInput {
+  prompt: string
+  model: { id: string; providerID: string }
+}
+
+interface MinimalRequestOptions {
+  signal?: AbortSignal
+}
+
+export interface MinimalSessionClient {
+  create: (
+    input: { title?: string; model: { id: string; providerID: string } },
+    options?: MinimalRequestOptions,
+  ) => Promise<{ id: string }>
+  generate: (
+    input: { sessionID: string; prompt: string },
+    options?: MinimalRequestOptions,
+  ) => Promise<{ text: string }>
+  remove: (input: { sessionID: string }, options?: MinimalRequestOptions) => Promise<unknown>
+}
+
 export interface MinimalOpenCodeClient {
   generate?: {
-    text: (
-      input: {
-        prompt: string
-        model: { id: string; providerID: string }
-      },
-      options?: { signal?: AbortSignal },
-    ) => Promise<{ text: string }>
+    text: (input: MinimalGenerateInput, options?: MinimalRequestOptions) => Promise<{ text: string }>
   }
   experimental?: {
     generate?: {
-      text: (
-        input: {
-          prompt: string
-          model: { id: string; providerID: string }
-        },
-        options?: { signal?: AbortSignal },
-      ) => Promise<{ text: string }>
+      text: (input: MinimalGenerateInput, options?: MinimalRequestOptions) => Promise<{ text: string }>
     }
   }
+  session?: MinimalSessionClient
 }
 
 export interface TestSingleModelOptions {
@@ -81,84 +91,176 @@ export interface TestSingleModelOptions {
   prompt?: string
 }
 
+const DEFAULT_TEST_PROMPT = "1+1=? Answer with only the number."
+
+/** OpenCode's free models reject stateless generation but work inside a session. */
+export function isFreeUsageLimitError(error: unknown): boolean {
+  if (typeof error === "string") return /free usage limit/i.test(error)
+  if (!error || typeof error !== "object") return false
+  const message = (error as { message?: unknown }).message
+  return typeof message === "string" && /free usage limit/i.test(message)
+}
+
+type GenerationOutcome =
+  | { status: "success"; text?: string; latency: number }
+  | { status: "error"; error: string; latency: number }
+
+function elapsedMs(start: number): number {
+  return Math.max(1, Math.round(performance.now() - start))
+}
+
+function createRequestScope(timeoutMs: number, outer?: AbortSignal) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const abortListener = () => controller.abort()
+
+  if (outer) {
+    if (outer.aborted) controller.abort()
+    else outer.addEventListener("abort", abortListener, { once: true })
+  }
+
+  return {
+    signal: controller.signal,
+    timedOut: () => controller.signal.aborted && !outer?.aborted,
+    dispose() {
+      clearTimeout(timeoutId)
+      outer?.removeEventListener("abort", abortListener)
+    },
+  }
+}
+
+function describeError(error: unknown, timedOut: boolean, outer: AbortSignal | undefined, timeoutMs: number): string {
+  if (outer?.aborted) return "Test cancelled"
+  if (timedOut) return `Request timed out (${Math.round(timeoutMs / 1000)}s)`
+  if (error instanceof Error) return error.message
+  if (typeof error === "string") return error
+  return "Unknown error"
+}
+
+async function generateStateless(
+  client: MinimalOpenCodeClient,
+  model: ModelTarget,
+  prompt: string,
+  timeoutMs: number,
+  outer?: AbortSignal,
+): Promise<GenerationOutcome> {
+  const start = performance.now()
+  const scope = createRequestScope(timeoutMs, outer)
+  try {
+    const generateFn = client.generate?.text || client.experimental?.generate?.text
+    if (!generateFn) throw new Error("generate.text API unavailable on client")
+
+    const res = await generateFn(
+      {
+        prompt,
+        model: { id: model.id, providerID: model.providerID },
+      },
+      { signal: scope.signal },
+    )
+    return { status: "success", text: res?.text, latency: elapsedMs(start) }
+  } catch (error) {
+    return {
+      status: "error",
+      error: describeError(error, scope.timedOut(), outer, timeoutMs),
+      latency: elapsedMs(start),
+    }
+  } finally {
+    scope.dispose()
+  }
+}
+
+async function generateInSession(
+  client: MinimalOpenCodeClient,
+  model: ModelTarget,
+  prompt: string,
+  timeoutMs: number,
+  outer?: AbortSignal,
+): Promise<GenerationOutcome | undefined> {
+  const session = client.session
+  if (!session) return undefined
+
+  const start = performance.now()
+  const scope = createRequestScope(timeoutMs, outer)
+  let sessionID: string | undefined
+
+  try {
+    const created = await session.create(
+      {
+        title: `Model test: ${model.name}`,
+        model: { id: model.id, providerID: model.providerID },
+      },
+      { signal: scope.signal },
+    )
+    sessionID = created?.id
+    if (!sessionID) throw new Error("Session creation returned no id")
+
+    const res = await session.generate(
+      { sessionID, prompt },
+      { signal: scope.signal },
+    )
+    return { status: "success", text: res?.text, latency: elapsedMs(start) }
+  } catch (error) {
+    return {
+      status: "error",
+      error: describeError(error, scope.timedOut(), outer, timeoutMs),
+      latency: elapsedMs(start),
+    }
+  } finally {
+    scope.dispose()
+    if (sessionID) {
+      // The probe session is an implementation detail; never leave it behind.
+      try {
+        await session.remove({ sessionID })
+      } catch {
+        // Best effort: a failed cleanup must not change the test result.
+      }
+    }
+  }
+}
+
+function resultFromOutcome(
+  key: string,
+  model: ModelTarget,
+  outcome: GenerationOutcome,
+): ModelTestResult {
+  const base = {
+    key,
+    providerID: model.providerID,
+    modelID: model.modelID,
+    modelName: model.name,
+    latency: outcome.latency,
+    testedAt: Date.now(),
+  }
+  if (outcome.status === "success") {
+    return { ...base, status: "success", reply: outcome.text }
+  }
+  return { ...base, status: "error", error: outcome.error }
+}
+
 /**
  * Tests a single model by sending a minimal test prompt.
+ *
+ * OpenCode's free models reject stateless generation with a free-usage-limit
+ * error even though they work in normal chat sessions. Fall back to a
+ * temporary session for those models so the badge reflects real availability.
  */
 export async function testSingleModel(
   client: MinimalOpenCodeClient,
   model: ModelTarget,
   options: TestSingleModelOptions = {},
 ): Promise<ModelTestResult> {
-  const { timeoutMs = 15000, signal, prompt = "1+1=? Answer with only the number." } = options
+  const { timeoutMs = 15000, signal, prompt = DEFAULT_TEST_PROMPT } = options
   const key = modelKey(model.providerID, model.modelID)
-  const start = performance.now()
 
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const primary = await generateStateless(client, model, prompt, timeoutMs, signal)
+  if (primary.status === "success") return resultFromOutcome(key, model, primary)
 
-  const abortListener = () => controller.abort()
-  if (signal) {
-    if (signal.aborted) {
-      clearTimeout(timeoutId)
-      controller.abort()
-    } else {
-      signal.addEventListener("abort", abortListener, { once: true })
-    }
+  if (!signal?.aborted && isFreeUsageLimitError(primary.error) && client.session) {
+    const fallback = await generateInSession(client, model, prompt, timeoutMs, signal)
+    if (fallback) return resultFromOutcome(key, model, fallback)
   }
 
-  try {
-    const generateFn =
-      client.generate?.text ||
-      client.experimental?.generate?.text
-    if (!generateFn) {
-      throw new Error("generate.text API unavailable on client")
-    }
-
-    const res = await generateFn(
-      {
-        prompt,
-        model: {
-          id: model.id,
-          providerID: model.providerID,
-        },
-      },
-      { signal: controller.signal },
-    )
-    const latency = Math.max(1, Math.round(performance.now() - start))
-    return {
-      key,
-      providerID: model.providerID,
-      modelID: model.modelID,
-      modelName: model.name,
-      status: "success",
-      latency,
-      testedAt: Date.now(),
-      reply: res?.text,
-    }
-  } catch (err: unknown) {
-    const latency = Math.max(1, Math.round(performance.now() - start))
-    let message = "Unknown error"
-    if (controller.signal.aborted) {
-      message = signal?.aborted ? "Test cancelled" : `Request timed out (${Math.round(timeoutMs / 1000)}s)`
-    } else if (err instanceof Error) {
-      message = err.message
-    } else if (typeof err === "string") {
-      message = err
-    }
-    return {
-      key,
-      providerID: model.providerID,
-      modelID: model.modelID,
-      modelName: model.name,
-      status: "error",
-      latency,
-      testedAt: Date.now(),
-      error: message,
-    }
-  } finally {
-    clearTimeout(timeoutId)
-    if (signal) signal.removeEventListener("abort", abortListener)
-  }
+  return resultFromOutcome(key, model, primary)
 }
 
 export interface TestMultipleModelsOptions extends TestSingleModelOptions {
