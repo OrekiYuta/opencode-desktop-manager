@@ -1,9 +1,13 @@
 # opencode-desktop-manager
 
-A session management and favorites plugin for **OpenCode Desktop V2**.
+A session management, favorites, and Copilot Fusion router plugin for **OpenCode V2**.
 
 ## Features
 
+- **GitHub Copilot Fusion Support (Server Plugin):**
+  - Registers the `github-copilot/fusion` model with variants (`#standard`, `#high`, `#max`).
+  - Seamlessly routes conversation turns via GitHub Copilot's `/auto` routing endpoint using your existing Copilot OAuth connection.
+  - Automatically manages sticky sessions, anchor model degradation, and session token caching.
 - **Session Header (☆ / ★):** Click **☆ Favorite this session** in the timeline header to save the session. The button toggles to **★ Favorited**; click again to unfavorite. Compact headers show only the star. Each session tracks its own state.
 - **Titlebar Entry:** A persistent **Session Manager** button in the window titlebar opens the floating manager dialog directly, without navigating to Settings.
 - **Collapsible Project Groups:** Favorites and recent sessions are grouped by their detected repository or workspace directory. Each group shows the project name, root directory, and session count.
@@ -25,7 +29,13 @@ Add the repository directly to your OpenCode configuration. In your global `~/.c
 {
   "$schema": "https://opencode.ai/config.json",
   "plugins": [
-    "github:OrekiYuta/opencode-desktop-manager"
+    {
+      "package": "github:OrekiYuta/opencode-desktop-manager",
+      "options": {
+        "timeoutMs": 40000,
+        "route": "conversation"
+      }
+    }
   ]
 }
 ```
