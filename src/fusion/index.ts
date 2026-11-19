@@ -35,6 +35,7 @@ import {
 import { wireOfAnchor, type Wire } from "./wire.js"
 import { rewriteRequest } from "./rewrite.js"
 import { parseFusionOptions } from "./options.js"
+import { sanitizeCallIds } from "./sanitize.js"
 
 const PROVIDER_ID = "github-copilot"
 const MODEL_ID = "fusion"
@@ -214,82 +215,118 @@ export default Plugin.define({
       "http.request",
       async (event) => {
         try {
-        if (event.model.id !== MODEL_ID || event.model.providerID !== PROVIDER_ID) return
-        // Auxiliary calls stay deterministic and cheap — never route them.
-        if (event.kind === "title" || event.kind === "generate" || event.kind === "compaction") return
+          if (event.model.providerID !== PROVIDER_ID) return
 
-        const creds = await getCreds()
-        if (!creds) {
-          warnOnce(
-            "creds-missing",
-            "github-copilot is not connected — fusion routing disabled; requests use the anchor model. Connect it and restart.",
-          )
-          return
-        }
-        const credsK = state.creds?.key ?? credsKey(creds.token, creds.baseURL)
-        if (!state.anchorWire) {
-          debug("fusion: anchor wire unresolved — leaving request unchanged")
-          return
-        }
-
-        const cloned = await event.request.clone().json().catch(() => undefined)
-        if (typeof cloned !== "object" || cloned === null) {
-          debug("fusion: request body was not JSON — leaving request unchanged")
-          return
-        }
-        const prompt = extractPromptFromBody(cloned)
-        if (!prompt || (!prompt.text.trim() && !prompt.image)) {
-          debug("fusion: no user prompt found in request body — leaving request unchanged")
-          return
-        }
-        const variant = normalizeVariant(event.model.variant)
-        if (variant === undefined) {
-          warnOnce("variant-unknown", `unrecognized variant '${String(event.model.variant)}' — using 'standard'`)
-        }
-        const normalized = variant ?? "standard"
-
-        const metaByIdLazy = state.metaById ?? (await getMetaById())
-        const resolved = resolveWireTier(normalized, metaByIdLazy)
-        if (!resolved) {
-          warnOnce(
-            `variant-disabled-${normalized}`,
-            `Copilot Fusion tier '${normalized}' is not enabled for this account — using the anchor model for this turn.`,
-          )
-          return
-        }
-
-        const result = await router.route({
-          baseURL: creds.baseURL,
-          token: creds.token,
-          credsKey: credsK,
-          sessionID: event.sessionID,
-          variant: normalized,
-          wire: state.anchorWire,
-          tier: resolved.wire,
-          text: prompt.text,
-          image: prompt.image,
-          route: options.route,
-        })
-        if (!result.ok) {
-          if (result.code === "http_401" || result.code === "http_403") {
-            state.creds = undefined
+          const cloned = await event.request.clone().json().catch(() => undefined)
+          if (typeof cloned !== "object" || cloned === null) {
+            debug("copilot: request body was not JSON — leaving request unchanged")
+            return
           }
-          warnOnce(`route-fallback-${result.code ?? "unknown"}`, `fusion route unavailable (${result.reason}) — using the anchor model for this turn`)
-          return
-        }
-        const entry = result.entry
-        const rewritten = await rewriteRequest(event.request, {
-          modelId: entry.modelId,
-          sessionToken: entry.sessionToken,
-          stripTemperature: options.stripTemperature,
-          body: cloned as Record<string, unknown>,
-        })
-        if (!rewritten.ok) {
-          warnOnce("rewrite-failed", `fusion: could not rewrite request (${rewritten.reason}) — using the anchor model for this turn`)
-          return
-        }
-        event.request = rewritten.request
-        debug(`fusion: ${normalized} -> ${entry.modelId}${resolved.degraded ? " (degraded: classic Auto tier)" : ""}`)
+
+          // Sanitize any overly long call_id values (e.g. > 64 chars from Gemini thinking)
+          // that violate OpenAI / Copilot's schema constraints
+          const callIdsSanitized = sanitizeCallIds(cloned as Record<string, unknown>)
+          if (callIdsSanitized) {
+            debug("copilot: sanitized call_ids (>64 chars) from previous session turns")
+          }
+
+          const applySanitizedFallback = () => {
+            if (callIdsSanitized) {
+              const headers = new Headers(event.request.headers)
+              headers.delete("content-length")
+              event.request = new Request(event.request, {
+                headers,
+                body: JSON.stringify(cloned),
+                signal: event.request.signal,
+              })
+            }
+          }
+
+          // Non-fusion Copilot models only need call_id sanitization
+          if (event.model.id !== MODEL_ID) {
+            applySanitizedFallback()
+            return
+          }
+
+          // Auxiliary calls stay deterministic and cheap — never route them.
+          if (event.kind === "title" || event.kind === "generate" || event.kind === "compaction") {
+            applySanitizedFallback()
+            return
+          }
+
+          const creds = await getCreds()
+          if (!creds) {
+            warnOnce(
+              "creds-missing",
+              "github-copilot is not connected — fusion routing disabled; requests use the anchor model. Connect it and restart.",
+            )
+            applySanitizedFallback()
+            return
+          }
+          const credsK = state.creds?.key ?? credsKey(creds.token, creds.baseURL)
+          if (!state.anchorWire) {
+            debug("fusion: anchor wire unresolved — leaving request unchanged")
+            applySanitizedFallback()
+            return
+          }
+
+          const prompt = extractPromptFromBody(cloned)
+          if (!prompt || (!prompt.text.trim() && !prompt.image)) {
+            debug("fusion: no user prompt found in request body — leaving request unchanged")
+            applySanitizedFallback()
+            return
+          }
+          const variant = normalizeVariant(event.model.variant)
+          if (variant === undefined) {
+            warnOnce("variant-unknown", `unrecognized variant '${String(event.model.variant)}' — using 'standard'`)
+          }
+          const normalized = variant ?? "standard"
+
+          const metaByIdLazy = state.metaById ?? (await getMetaById())
+          const resolved = resolveWireTier(normalized, metaByIdLazy)
+          if (!resolved) {
+            warnOnce(
+              `variant-disabled-${normalized}`,
+              `Copilot Fusion tier '${normalized}' is not enabled for this account — using the anchor model for this turn.`,
+            )
+            applySanitizedFallback()
+            return
+          }
+
+          const result = await router.route({
+            baseURL: creds.baseURL,
+            token: creds.token,
+            credsKey: credsK,
+            sessionID: event.sessionID,
+            variant: normalized,
+            wire: state.anchorWire,
+            tier: resolved.wire,
+            text: prompt.text,
+            image: prompt.image,
+            route: options.route,
+          })
+          if (!result.ok) {
+            if (result.code === "http_401" || result.code === "http_403") {
+              state.creds = undefined
+            }
+            warnOnce(`route-fallback-${result.code ?? "unknown"}`, `fusion route unavailable (${result.reason}) — using the anchor model for this turn`)
+            applySanitizedFallback()
+            return
+          }
+          const entry = result.entry
+          const rewritten = await rewriteRequest(event.request, {
+            modelId: entry.modelId,
+            sessionToken: entry.sessionToken,
+            stripTemperature: options.stripTemperature,
+            body: cloned as Record<string, unknown>,
+          })
+          if (!rewritten.ok) {
+            warnOnce("rewrite-failed", `fusion: could not rewrite request (${rewritten.reason}) — using the anchor model for this turn`)
+            applySanitizedFallback()
+            return
+          }
+          event.request = rewritten.request
+          debug(`fusion: ${normalized} -> ${entry.modelId}${resolved.degraded ? " (degraded: classic Auto tier)" : ""}`)
         } catch (error) {
           // Last-resort: never abort the turn in the plugin's name.
           warnOnce(

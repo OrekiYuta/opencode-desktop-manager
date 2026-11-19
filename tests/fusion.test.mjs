@@ -5,6 +5,60 @@ import { parseFusionOptions, DEFAULT_FUSION_OPTIONS } from "../src/fusion/option
 import { extractPromptFromBody } from "../src/fusion/prompt.ts"
 import { normalizeVariant, FUSION_TIERS } from "../src/fusion/tiers.ts"
 import { copilotBaseURLFromMetadata, copilotCredentialsFromCredential } from "../src/fusion/creds.ts"
+import { sanitizeCallIds } from "../src/fusion/sanitize.ts"
+
+test("sanitizeCallIds: leaves valid call_ids <= 64 chars untouched", () => {
+  const body = {
+    input: [
+      { type: "function_call", call_id: "call_valid_short_id_12345", name: "test" },
+      { type: "function_call_output", call_id: "call_valid_short_id_12345", output: "{}" }
+    ]
+  }
+  const changed = sanitizeCallIds(body)
+  assert.equal(changed, false)
+  assert.equal(body.input[0].call_id, "call_valid_short_id_12345")
+  assert.equal(body.input[1].call_id, "call_valid_short_id_12345")
+})
+
+test("sanitizeCallIds: shortens overly long call_ids and preserves pair matching", () => {
+  const longId = "call_8324482681828700314__thought__" + "A".repeat(1100)
+  const otherLongId = "call_9999999999999999999__thought__" + "B".repeat(1100)
+  const body = {
+    input: [
+      { type: "function_call", call_id: longId, name: "my_func" },
+      { type: "function_call_output", call_id: longId, output: "ok" },
+      { type: "function_call", call_id: otherLongId, name: "other_func" },
+      { type: "function_call_output", call_id: otherLongId, output: "done" }
+    ],
+    messages: [
+      {
+        role: "assistant",
+        tool_calls: [{ id: longId, type: "function" }]
+      },
+      {
+        role: "tool",
+        tool_call_id: longId,
+        content: "ok"
+      }
+    ]
+  }
+
+  const changed = sanitizeCallIds(body)
+  assert.equal(changed, true)
+
+  // Under 64 chars
+  assert.ok(body.input[0].call_id.length <= 64)
+  assert.ok(body.input[0].call_id.startsWith("call_"))
+
+  // Pair matching preserved in Responses format
+  assert.equal(body.input[0].call_id, body.input[1].call_id)
+  assert.equal(body.input[2].call_id, body.input[3].call_id)
+  assert.notEqual(body.input[0].call_id, body.input[2].call_id)
+
+  // Pair matching preserved in Chat format
+  assert.equal(body.messages[0].tool_calls[0].id, body.messages[1].tool_call_id)
+  assert.equal(body.messages[0].tool_calls[0].id, body.input[0].call_id)
+})
 
 test("wireOfAnchor: resolves anthropic wire to messages", () => {
   assert.equal(wireOfAnchor({ package: "@opencode/ai/providers/anthropic", modelID: "claude-opus-5.5" }), "messages")

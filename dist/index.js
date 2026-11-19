@@ -589,6 +589,52 @@ function parseFusionOptions(raw) {
   };
 }
 
+// src/fusion/sanitize.ts
+import { createHash as createHash2 } from "node:crypto";
+function sanitizeCallIds(body) {
+  let changed = false;
+  const idMap = /* @__PURE__ */ new Map();
+  function getShortId(id) {
+    let shortId = idMap.get(id);
+    if (!shortId) {
+      const hash = createHash2("sha256").update(id).digest("hex").slice(0, 40);
+      shortId = `call_${hash}`;
+      idMap.set(id, shortId);
+    }
+    return shortId;
+  }
+  function cleanString(val) {
+    if (val.length > 64) {
+      changed = true;
+      return getShortId(val);
+    }
+    return val;
+  }
+  function walk(node) {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        walk(item);
+      }
+      return;
+    }
+    const record = node;
+    for (const [key, val] of Object.entries(record)) {
+      if (typeof val === "string") {
+        if (key === "call_id" || key === "tool_call_id") {
+          record[key] = cleanString(val);
+        } else if (key === "id" && val.length > 64 && (val.startsWith("call_") || record.type === "function_call" || record.type === "tool_call" || record.type === "function")) {
+          record[key] = cleanString(val);
+        }
+      } else if (typeof val === "object" && val !== null) {
+        walk(val);
+      }
+    }
+  }
+  walk(body);
+  return changed;
+}
+
 // src/fusion/index.ts
 var PROVIDER_ID = "github-copilot";
 var MODEL_ID = "fusion";
@@ -733,29 +779,54 @@ var fusion_default = Plugin.define({
       "http.request",
       async (event) => {
         try {
-          if (event.model.id !== MODEL_ID || event.model.providerID !== PROVIDER_ID) return;
-          if (event.kind === "title" || event.kind === "generate" || event.kind === "compaction") return;
+          if (event.model.providerID !== PROVIDER_ID) return;
+          const cloned = await event.request.clone().json().catch(() => void 0);
+          if (typeof cloned !== "object" || cloned === null) {
+            debug("copilot: request body was not JSON \u2014 leaving request unchanged");
+            return;
+          }
+          const callIdsSanitized = sanitizeCallIds(cloned);
+          if (callIdsSanitized) {
+            debug("copilot: sanitized call_ids (>64 chars) from previous session turns");
+          }
+          const applySanitizedFallback = () => {
+            if (callIdsSanitized) {
+              const headers = new Headers(event.request.headers);
+              headers.delete("content-length");
+              event.request = new Request(event.request, {
+                headers,
+                body: JSON.stringify(cloned),
+                signal: event.request.signal
+              });
+            }
+          };
+          if (event.model.id !== MODEL_ID) {
+            applySanitizedFallback();
+            return;
+          }
+          if (event.kind === "title" || event.kind === "generate" || event.kind === "compaction") {
+            applySanitizedFallback();
+            return;
+          }
           const creds = await getCreds();
           if (!creds) {
             warnOnce(
               "creds-missing",
               "github-copilot is not connected \u2014 fusion routing disabled; requests use the anchor model. Connect it and restart."
             );
+            applySanitizedFallback();
             return;
           }
           const credsK = state.creds?.key ?? credsKey(creds.token, creds.baseURL);
           if (!state.anchorWire) {
             debug("fusion: anchor wire unresolved \u2014 leaving request unchanged");
-            return;
-          }
-          const cloned = await event.request.clone().json().catch(() => void 0);
-          if (typeof cloned !== "object" || cloned === null) {
-            debug("fusion: request body was not JSON \u2014 leaving request unchanged");
+            applySanitizedFallback();
             return;
           }
           const prompt = extractPromptFromBody(cloned);
           if (!prompt || !prompt.text.trim() && !prompt.image) {
             debug("fusion: no user prompt found in request body \u2014 leaving request unchanged");
+            applySanitizedFallback();
             return;
           }
           const variant = normalizeVariant(event.model.variant);
@@ -770,6 +841,7 @@ var fusion_default = Plugin.define({
               `variant-disabled-${normalized}`,
               `Copilot Fusion tier '${normalized}' is not enabled for this account \u2014 using the anchor model for this turn.`
             );
+            applySanitizedFallback();
             return;
           }
           const result = await router.route({
@@ -789,6 +861,7 @@ var fusion_default = Plugin.define({
               state.creds = void 0;
             }
             warnOnce(`route-fallback-${result.code ?? "unknown"}`, `fusion route unavailable (${result.reason}) \u2014 using the anchor model for this turn`);
+            applySanitizedFallback();
             return;
           }
           const entry = result.entry;
@@ -800,6 +873,7 @@ var fusion_default = Plugin.define({
           });
           if (!rewritten.ok) {
             warnOnce("rewrite-failed", `fusion: could not rewrite request (${rewritten.reason}) \u2014 using the anchor model for this turn`);
+            applySanitizedFallback();
             return;
           }
           event.request = rewritten.request;
