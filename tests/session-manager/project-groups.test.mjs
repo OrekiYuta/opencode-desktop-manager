@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { groupSessionsByProject } from "../src/project-groups.ts"
+import { groupSessionsByProject } from "../../src/session-manager/project-groups.ts"
 
 const projects = {
   sidecar: [

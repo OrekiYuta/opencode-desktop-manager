@@ -1,7 +1,7 @@
 import type { SetupContext } from "@opencode/plugin/gui"
-import { setupModelTester, triggerModelTest } from "../src/model-tester-dom"
-import { modelKey, type ModelTarget } from "../src/model-tester"
-import pluginCSS from "../src/model-tester.css?inline"
+import { setupModelTester, triggerModelTest } from "../../src/model-tester/dom"
+import { modelKey, type ModelTarget } from "../../src/model-tester/tester"
+import pluginCSS from "../../src/model-tester/model-tester.css?inline"
 import nativeCSS from "./model-tester-native.css?inline"
 
 type Screen = "selector" | "settings" | "manage" | "both" | "unrelated"

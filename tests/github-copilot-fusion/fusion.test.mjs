@@ -1,11 +1,11 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { wireOfAnchor } from "../src/fusion/wire.ts"
-import { parseFusionOptions, DEFAULT_FUSION_OPTIONS } from "../src/fusion/options.ts"
-import { extractPromptFromBody } from "../src/fusion/prompt.ts"
-import { normalizeVariant, FUSION_TIERS } from "../src/fusion/tiers.ts"
-import { copilotBaseURLFromMetadata, copilotCredentialsFromCredential } from "../src/fusion/creds.ts"
-import { sanitizeCallIds } from "../src/fusion/sanitize.ts"
+import { wireOfAnchor } from "../../src/github-copilot-fusion/wire.ts"
+import { parseFusionOptions, DEFAULT_FUSION_OPTIONS } from "../../src/github-copilot-fusion/options.ts"
+import { extractPromptFromBody } from "../../src/github-copilot-fusion/prompt.ts"
+import { normalizeVariant, FUSION_TIERS } from "../../src/github-copilot-fusion/tiers.ts"
+import { copilotBaseURLFromMetadata, copilotCredentialsFromCredential } from "../../src/github-copilot-fusion/creds.ts"
+import { sanitizeCallIds } from "../../src/github-copilot-fusion/sanitize.ts"
 
 test("sanitizeCallIds: leaves valid call_ids <= 64 chars untouched", () => {
   const body = {

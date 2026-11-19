@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { belongsToServer, findFavorite } from "../src/favorites.ts"
+import { belongsToServer, findFavorite } from "../../src/session-manager/favorites.ts"
 
 const favorites = [
   { id: "old-session", title: "Existing pin" },

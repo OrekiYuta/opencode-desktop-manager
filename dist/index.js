@@ -1,7 +1,7 @@
-// src/fusion/index.ts
+// src/github-copilot-fusion/index.ts
 import { Model, Plugin } from "@opencode/plugin";
 
-// src/fusion/creds.ts
+// src/github-copilot-fusion/creds.ts
 var COPILOT_INTEGRATION_ID = "github-copilot";
 var DEFAULT_BASE_URL = "https://api.githubcopilot.com";
 var HOSTNAME_RE = /^[a-z0-9.-]+$/i;
@@ -64,10 +64,10 @@ async function resolveCopilotCredentials(integration) {
   }
 }
 
-// src/fusion/router.ts
+// src/github-copilot-fusion/router.ts
 import { createHash } from "node:crypto";
 
-// src/fusion/cache.ts
+// src/github-copilot-fusion/cache.ts
 var LruMap = class extends Map {
   constructor(maxSize = 256) {
     super();
@@ -94,7 +94,7 @@ var LruMap = class extends Map {
   }
 };
 
-// src/fusion/tiers.ts
+// src/github-copilot-fusion/tiers.ts
 var FUSION_TIERS = [
   { variant: "standard", wire: "balance", effort: "low", label: "Fusion Standard" },
   { variant: "high", wire: "hydrafusion", fallbackWire: "intelligence", effort: "high", label: "Fusion High" },
@@ -136,7 +136,7 @@ function parseFusionMeta(payload) {
 }
 var COPILOT_API_VERSION = "2026-08-01";
 
-// src/fusion/wire.ts
+// src/github-copilot-fusion/wire.ts
 function wirePath(wire) {
   switch (wire) {
     case "responses":
@@ -161,7 +161,7 @@ function wireOfAnchor(anchor) {
   return "chat";
 }
 
-// src/fusion/auto.ts
+// src/github-copilot-fusion/auto.ts
 var ONE_HOUR_MS = 60 * 6e4;
 var META_TTL_MS = 6e4;
 var MAX_EXPIRY_MS = 25 * 60 * 6e4;
@@ -321,7 +321,7 @@ function describeError(error) {
   return String(error);
 }
 
-// src/fusion/router.ts
+// src/github-copilot-fusion/router.ts
 var FIVE_MINUTES_MS = 5 * 6e4;
 function hashPrompt(text) {
   try {
@@ -461,7 +461,7 @@ var FusionRouter = class _FusionRouter {
   }
 };
 
-// src/fusion/prompt.ts
+// src/github-copilot-fusion/prompt.ts
 var IMAGE_PART_TYPES = /* @__PURE__ */ new Set(["input_image", "image_url", "image"]);
 function textFromContentPart(part) {
   if (typeof part !== "object" || part === null) return "";
@@ -527,7 +527,7 @@ function extractPromptFromBody(body) {
   return null;
 }
 
-// src/fusion/rewrite.ts
+// src/github-copilot-fusion/rewrite.ts
 async function rewriteRequest(original, options) {
   let parsed = options.body;
   if (parsed === void 0) {
@@ -556,7 +556,7 @@ async function rewriteRequest(original, options) {
   };
 }
 
-// src/fusion/options.ts
+// src/github-copilot-fusion/options.ts
 var DEFAULTS = {
   route: "conversation",
   stripTemperature: true,
@@ -589,7 +589,7 @@ function parseFusionOptions(raw) {
   };
 }
 
-// src/fusion/sanitize.ts
+// src/github-copilot-fusion/sanitize.ts
 import { createHash as createHash2 } from "node:crypto";
 function sanitizeCallIds(body) {
   let changed = false;
@@ -635,11 +635,11 @@ function sanitizeCallIds(body) {
   return changed;
 }
 
-// src/fusion/index.ts
+// src/github-copilot-fusion/index.ts
 var PROVIDER_ID = "github-copilot";
 var MODEL_ID = "fusion";
 var PREFERRED_ANCHORS = ["gpt-6-luna", "gpt-6.1-sol", "gpt-6-terra", "gpt-6-astra", "gpt-6-sol", "gpt-5.4", "gpt-5.3-codex"];
-var fusion_default = Plugin.define({
+var github_copilot_fusion_default = Plugin.define({
   id: "opencode-desktop-manager",
   async setup(ctx) {
     const options = parseFusionOptions(ctx.options);
@@ -891,7 +891,7 @@ var fusion_default = Plugin.define({
 });
 
 // src/index.ts
-var index_default = fusion_default;
+var index_default = github_copilot_fusion_default;
 export {
   index_default as default
 };

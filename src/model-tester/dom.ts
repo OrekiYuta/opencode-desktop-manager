@@ -10,7 +10,7 @@ import {
   type MatchProviderItem,
   type ModelTarget,
   type ModelTestResult,
-} from "./model-tester"
+} from "./tester"
 
 export let triggerModelTest: (() => Promise<void>) | null = null
 

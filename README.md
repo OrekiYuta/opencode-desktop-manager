@@ -8,16 +8,20 @@ A session management, favorites, and Copilot Fusion router plugin for **OpenCode
   - Registers the `github-copilot/fusion` model with variants (`#standard`, `#high`, `#max`).
   - Seamlessly routes conversation turns via GitHub Copilot's `/auto` routing endpoint using your existing Copilot OAuth connection.
   - Automatically manages sticky sessions, anchor model degradation, and session token caching.
-- **Session Header (☆ / ★):** Click **☆ Favorite this session** in the timeline header to save the session. The button toggles to **★ Favorited**; click again to unfavorite. Compact headers show only the star. Each session tracks its own state.
-- **Titlebar Entry:** A persistent **Session Manager** button in the window titlebar opens the floating manager dialog directly, without navigating to Settings.
-- **Collapsible Project Groups:** Favorites and recent sessions are grouped by their detected repository or workspace directory. Each group shows the project name, root directory, and session count.
-  - Recent sessions start **collapsed** by default to reduce clutter.
-  - Favorite sessions start **expanded** by default.
-  - **Expand all projects** and **Collapse all projects** buttons allow fast bulk toggling.
-- **Quick Search:** Live search filters by project name, directory path, session title, and session ID. Matching groups automatically expand. Clearing the search restores previous fold states.
-- **Hover / Focus × to Unfavorite:** In the manager list, hover or keyboard focus reveals a `×` button that **only unfavorites the session—it never deletes actual chat history**.
-- **Cross-Project Cleanup with Confirmation:** Bulk delete unpinned, non-archived root sessions and their child sessions across projects with safety confirmation. Favorites are strictly protected.
-- **Seamless Migration:** Automatically imports past bookmarks and pins from legacy `opencode-ui-manager` stores if present.
+- **Model Tester (GUI Plugin):**
+  - Instant latency and functional testing for all enabled models directly inside OpenCode's Model Settings dialog.
+  - Visual badges with latency metrics, status tooltips, and re-test capabilities.
+- **Session Manager (GUI Plugin):**
+  - **Session Header (☆ / ★):** Click **☆ Favorite this session** in the timeline header to save the session. The button toggles to **★ Favorited**; click again to unfavorite. Compact headers show only the star. Each session tracks its own state.
+  - **Titlebar Entry:** A persistent **Session Manager** button in the window titlebar opens the floating manager dialog directly, without navigating to Settings.
+  - **Collapsible Project Groups:** Favorites and recent sessions are grouped by their detected repository or workspace directory. Each group shows the project name, root directory, and session count.
+    - Recent sessions start **collapsed** by default to reduce clutter.
+    - Favorite sessions start **expanded** by default.
+    - **Expand all projects** and **Collapse all projects** buttons allow fast bulk toggling.
+  - **Quick Search:** Live search filters by project name, directory path, session title, and session ID. Matching groups automatically expand. Clearing the search restores previous fold states.
+  - **Hover / Focus × to Unfavorite:** In the manager list, hover or keyboard focus reveals a `×` button that **only unfavorites the session—it never deletes actual chat history**.
+  - **Cross-Project Cleanup with Confirmation:** Bulk delete unpinned, non-archived root sessions and their child sessions across projects with safety confirmation. Favorites are strictly protected.
+  - **Seamless Migration:** Automatically imports past bookmarks and pins from legacy `opencode-ui-manager` stores if present.
 
 ## Installation
 
@@ -87,7 +91,7 @@ npm test
 npm run test:ui
 ```
 
-Open `http://127.0.0.1:5188/tests/model-tester.html` and click **Run regression checks**
+Open `http://127.0.0.1:5188/tests/model-tester/model-tester.html` and click **Run regression checks**
 to verify the model tester against the OpenCode 2.3 dialog/settings DOM structure.
 The fixture uses a mock model service and covers centered/responsive sizing, scoped
 badges and controls, search updates, cancellation, and plugin cleanup.

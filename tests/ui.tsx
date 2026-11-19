@@ -1,9 +1,9 @@
 import { For, createMemo, createSignal } from "solid-js"
 import { render } from "solid-js/web"
-import { FavoriteButton, FavoriteList } from "../src/favorites-ui"
-import "../src/favorites.css"
-import { groupSessionsByProject } from "../src/project-groups"
-import { ProjectGroupSection } from "../src/project-group-ui"
+import { FavoriteButton, FavoriteList } from "../src/session-manager/favorites-ui"
+import "../src/session-manager/favorites.css"
+import { groupSessionsByProject } from "../src/session-manager/project-groups"
+import { ProjectGroupSection } from "../src/session-manager/project-group-ui"
 
 const styles = document.createElement("style")
 styles.textContent = `

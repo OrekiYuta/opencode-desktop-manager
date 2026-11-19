@@ -10,13 +10,22 @@ import {
   type DialogHandle,
   type MountedSession,
 } from "@opencode/plugin/gui"
-import { belongsToServer, findFavorite, type Favorite } from "./favorites"
-import { FavoriteButton, FavoriteList } from "./favorites-ui"
-import favoritesCss from "./favorites.css?inline"
-import { setupModelTester, triggerModelTest } from "./model-tester-dom"
-import modelTesterCss from "./model-tester.css?inline"
-import { groupSessionsByProject, type ProjectInfo } from "./project-groups"
-import { ProjectGroupSection } from "./project-group-ui"
+import {
+  belongsToServer,
+  findFavorite,
+  type Favorite,
+  FavoriteButton,
+  FavoriteList,
+  favoritesCss,
+  groupSessionsByProject,
+  type ProjectInfo,
+  ProjectGroupSection,
+} from "./session-manager"
+import {
+  setupModelTester,
+  triggerModelTest,
+  modelTesterCss,
+} from "./model-tester"
 
 const PAGE_SIZE = 100
 
