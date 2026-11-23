@@ -1,3 +1,6 @@
+// src/index.ts
+import { Plugin as Plugin2 } from "@opencode/plugin";
+
 // src/github-copilot-fusion/index.ts
 import { Model, Plugin } from "@opencode/plugin";
 
@@ -33,12 +36,12 @@ function parseOrigin(raw) {
 }
 function copilotBaseURLFromMetadata(metadata) {
   if (typeof metadata === "object" && metadata !== null) {
-    const record = metadata;
-    const endpoint = record.apiEndpoint;
+    const record2 = metadata;
+    const endpoint = record2.apiEndpoint;
     if (typeof endpoint === "string" && endpoint.trim()) {
       return parseOrigin(endpoint.trim()) ?? DEFAULT_BASE_URL;
     }
-    const enterprise = record.enterpriseUrl;
+    const enterprise = record2.enterpriseUrl;
     if (typeof enterprise === "string" && enterprise.trim()) {
       const host = parseHostname(enterprise.trim());
       if (!host) return DEFAULT_BASE_URL;
@@ -176,12 +179,12 @@ function endpointsInclude(endpoints, wire) {
 }
 function parseAutoResponse(data, now) {
   if (typeof data !== "object" || data === null) return void 0;
-  const record = data;
-  const sessionToken = typeof record.session_token === "string" ? record.session_token.trim() : "";
-  const selected = record.selected_model ?? {};
+  const record2 = data;
+  const sessionToken = typeof record2.session_token === "string" ? record2.session_token.trim() : "";
+  const selected = record2.selected_model ?? {};
   const modelId = typeof selected.id === "string" ? selected.id.trim() : "";
   if (!sessionToken || !modelId) return void 0;
-  const rawSec = typeof record.expires_at === "number" && Number.isFinite(record.expires_at) ? record.expires_at : null;
+  const rawSec = typeof record2.expires_at === "number" && Number.isFinite(record2.expires_at) ? record2.expires_at : null;
   const expiresAtMs = rawSec === null ? now + 24 * 3600 * 1e3 : Math.min(rawSec * 1e3, now + MAX_EXPIRY_MS);
   const input = selected.capabilities?.input;
   const vision = Array.isArray(input) ? input.includes("image") || input.includes("image_url") : null;
@@ -191,8 +194,8 @@ function parseAutoResponse(data, now) {
     expiresAtMs,
     endpoints: selected.supported_endpoints,
     vision,
-    hydraScores: record.hydra_scores,
-    discountedCosts: record.discounted_costs
+    hydraScores: record2.hydra_scores,
+    discountedCosts: record2.discounted_costs
   };
 }
 var CopilotClient = class {
@@ -519,10 +522,10 @@ function fromChatMessages(messages) {
 }
 function extractPromptFromBody(body) {
   if (typeof body !== "object" || body === null) return null;
-  const record = body;
-  const fromInput = fromResponsesInput(record.input);
+  const record2 = body;
+  const fromInput = fromResponsesInput(record2.input);
   if (fromInput) return fromInput;
-  const fromMessages = fromChatMessages(record.messages);
+  const fromMessages = fromChatMessages(record2.messages);
   if (fromMessages) return fromMessages;
   return null;
 }
@@ -565,27 +568,27 @@ var DEFAULTS = {
   debug: false
 };
 var DEFAULT_FUSION_OPTIONS = { anchorModel: void 0, ...DEFAULTS };
-function pickString(record, key) {
-  const value = record[key];
+function pickString(record2, key) {
+  const value = record2[key];
   return typeof value === "string" && value.trim() ? value.trim() : void 0;
 }
-function pickBoolean(record, key, fallback) {
-  const value = record[key];
+function pickBoolean(record2, key, fallback) {
+  const value = record2[key];
   return typeof value === "boolean" ? value : fallback;
 }
-function pickNumber(record, key, fallback, min, max) {
-  const value = record[key];
+function pickNumber(record2, key, fallback, min, max) {
+  const value = record2[key];
   return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max ? Math.floor(value) : fallback;
 }
 function parseFusionOptions(raw) {
-  const record = typeof raw === "object" && raw !== null ? raw : {};
+  const record2 = typeof raw === "object" && raw !== null ? raw : {};
   return {
-    anchorModel: pickString(record, "anchorModel"),
-    route: pickString(record, "route") === "prompt" ? "prompt" : "conversation",
-    stripTemperature: pickBoolean(record, "stripTemperature", DEFAULTS.stripTemperature),
-    timeoutMs: pickNumber(record, "timeoutMs", DEFAULTS.timeoutMs, 500, 6e4),
-    skewMs: pickNumber(record, "skewMs", DEFAULTS.skewMs, 0, 24 * 60 * 6e4),
-    debug: pickBoolean(record, "debug", DEFAULTS.debug) || process.env.FUSION_DEBUG === "1"
+    anchorModel: pickString(record2, "anchorModel"),
+    route: pickString(record2, "route") === "prompt" ? "prompt" : "conversation",
+    stripTemperature: pickBoolean(record2, "stripTemperature", DEFAULTS.stripTemperature),
+    timeoutMs: pickNumber(record2, "timeoutMs", DEFAULTS.timeoutMs, 500, 6e4),
+    skewMs: pickNumber(record2, "skewMs", DEFAULTS.skewMs, 0, 24 * 60 * 6e4),
+    debug: pickBoolean(record2, "debug", DEFAULTS.debug) || process.env.FUSION_DEBUG === "1"
   };
 }
 
@@ -618,13 +621,13 @@ function sanitizeCallIds(body) {
       }
       return;
     }
-    const record = node;
-    for (const [key, val] of Object.entries(record)) {
+    const record2 = node;
+    for (const [key, val] of Object.entries(record2)) {
       if (typeof val === "string") {
         if (key === "call_id" || key === "tool_call_id") {
-          record[key] = cleanString(val);
-        } else if (key === "id" && val.length > 64 && (val.startsWith("call_") || record.type === "function_call" || record.type === "tool_call" || record.type === "function")) {
-          record[key] = cleanString(val);
+          record2[key] = cleanString(val);
+        } else if (key === "id" && val.length > 64 && (val.startsWith("call_") || record2.type === "function_call" || record2.type === "tool_call" || record2.type === "function")) {
+          record2[key] = cleanString(val);
         }
       } else if (typeof val === "object" && val !== null) {
         walk(val);
@@ -890,8 +893,285 @@ var github_copilot_fusion_default = Plugin.define({
   }
 });
 
+// src/github-copilot-usage/rpc.ts
+import { Rpc } from "@opencode/plugin/rpc";
+var nullableNumber = { type: ["number", "null"] };
+var nullableBoolean = { type: ["boolean", "null"] };
+var nullableString = { type: ["string", "null"] };
+var quota = {
+  anyOf: [
+    { type: "null" },
+    {
+      type: "object",
+      properties: {
+        entitlement: nullableNumber,
+        remaining: nullableNumber,
+        percentRemaining: nullableNumber,
+        unlimited: nullableBoolean,
+        overageCount: nullableNumber,
+        overagePermitted: nullableBoolean,
+        creditsUsed: nullableNumber,
+        timestampUtc: nullableString,
+        tokenBasedBilling: nullableBoolean,
+        hasQuota: nullableBoolean
+      },
+      required: ["entitlement", "remaining", "percentRemaining", "unlimited", "overageCount", "overagePermitted", "creditsUsed", "timestampUtc", "tokenBasedBilling", "hasQuota"],
+      additionalProperties: false
+    }
+  ]
+};
+var UsageRpc = Rpc.define({
+  id: "copilot-usage",
+  events: {},
+  methods: {
+    get: {
+      input: {
+        type: "object",
+        properties: { refresh: { type: "boolean" } },
+        required: ["refresh"],
+        additionalProperties: false
+      },
+      output: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["ok", "not_authenticated", "unauthorized", "forbidden", "network_error", "invalid_response", "rate_limited"] },
+          data: {
+            anyOf: [
+              { type: "null" },
+              {
+                type: "object",
+                properties: {
+                  login: nullableString,
+                  loginStatus: { type: "string", enum: ["ok", "unauthorized", "forbidden", "rate_limited", "network_error", "invalid_response"] },
+                  plan: nullableString,
+                  resetDate: nullableString,
+                  tokenBasedBilling: nullableBoolean,
+                  quotas: {
+                    type: "object",
+                    properties: { chat: quota, completions: quota, premiumInteractions: quota },
+                    required: ["chat", "completions", "premiumInteractions"],
+                    additionalProperties: false
+                  }
+                },
+                required: ["login", "loginStatus", "plan", "resetDate", "tokenBasedBilling", "quotas"],
+                additionalProperties: false
+              }
+            ]
+          },
+          stale: { type: "boolean" },
+          fetchedAt: nullableNumber,
+          retryAfter: nullableNumber
+        },
+        required: ["status", "data", "stale", "fetchedAt", "retryAfter"],
+        additionalProperties: false
+      }
+    }
+  }
+});
+
+// src/github-copilot-usage/service.ts
+import { createHash as createHash3 } from "node:crypto";
+var CACHE_MS = 6e4;
+var REFRESH_INTERVAL_MS = 15e3;
+var SNAPSHOT_MAX_AGE_MS = 36e5;
+var TIMEOUT_MS = 8e3;
+function record(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+function number(value) {
+  if (typeof value === "number") return Number.isFinite(value) && value >= 0 ? value : null;
+  if (typeof value !== "string" || !/^\d+(?:\.\d+)?$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+function timestamp(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value)) ? value : null;
+}
+function boolean(value) {
+  return typeof value === "boolean" ? value : null;
+}
+function quota2(value) {
+  const item = record(value);
+  if (!item) return null;
+  const percentRemaining = number(item.percent_remaining);
+  return {
+    entitlement: number(item.entitlement),
+    remaining: number(item.quota_remaining),
+    percentRemaining: percentRemaining !== null && percentRemaining <= 100 ? percentRemaining : null,
+    unlimited: boolean(item.unlimited),
+    overageCount: number(item.overage_count),
+    overagePermitted: boolean(item.overage_permitted),
+    creditsUsed: number(item.credits_used),
+    timestampUtc: timestamp(item.timestamp_utc),
+    tokenBasedBilling: boolean(item.token_based_billing),
+    hasQuota: boolean(item.has_quota)
+  };
+}
+function parseUsage(value) {
+  const root = record(value);
+  if (!root || !("quota_snapshots" in root || "copilot_plan" in root || "quota_reset_date_utc" in root)) return null;
+  if (root.quota_snapshots != null && !record(root.quota_snapshots)) return null;
+  const snapshots = record(root.quota_snapshots);
+  const plan = typeof root.copilot_plan === "string" && /^[a-z0-9_-]{1,80}$/i.test(root.copilot_plan) ? root.copilot_plan : null;
+  const resetDate = timestamp(root.quota_reset_date_utc);
+  return {
+    plan,
+    resetDate,
+    tokenBasedBilling: boolean(root.token_based_billing),
+    quotas: { chat: quota2(snapshots?.chat), completions: quota2(snapshots?.completions), premiumInteractions: quota2(snapshots?.premium_interactions) }
+  };
+}
+function parseLogin(value) {
+  const login = record(value)?.login;
+  return typeof login === "string" && login.length <= 39 && /^[a-z0-9]+(?:-[a-z0-9]+)*(?:_[a-z0-9]{3,8})?$/i.test(login) ? login : null;
+}
+var UsageService = class {
+  cache;
+  integration;
+  fetcher;
+  now;
+  constructor(integration, fetcher = fetch, now = Date.now) {
+    this.integration = integration;
+    this.fetcher = fetcher;
+    this.now = now;
+  }
+  async identity() {
+    try {
+      const connection = await this.integration.connection.active("github-copilot");
+      if (!connection) return void 0;
+      const credential = await this.integration.connection.resolve(connection);
+      if (!credential || credential.type !== "oauth") return void 0;
+      const access = typeof credential.access === "string" && credential.access ? credential.access : void 0;
+      const refresh = typeof credential.refresh === "string" && credential.refresh ? credential.refresh : void 0;
+      const usageToken = refresh ?? access;
+      if (!usageToken) return void 0;
+      const profileToken = access ?? usageToken;
+      const info = record(connection);
+      const id = typeof info?.id === "string" ? info.id : "";
+      const key = createHash3("sha256").update(JSON.stringify([id, usageToken, profileToken])).digest("hex");
+      return { key, usageToken, profileToken };
+    } catch {
+      return void 0;
+    }
+  }
+  result(cache, status, stale, retryAfter = null) {
+    const snapshotTime = cache.data?.quotas.premiumInteractions?.timestampUtc;
+    const snapshotStale = snapshotTime != null && this.now() - Date.parse(snapshotTime) > SNAPSHOT_MAX_AGE_MS;
+    return { status, data: cache.data, stale: cache.data !== null && (stale || snapshotStale), fetchedAt: cache.fetchedAt, retryAfter };
+  }
+  async get(input) {
+    return this.getCurrent(input, 0);
+  }
+  async getCurrent(input, changes) {
+    const identity = await this.identity();
+    if (!identity) {
+      this.cache = void 0;
+      return { status: "not_authenticated", data: null, stale: false, fetchedAt: null, retryAfter: null };
+    }
+    if (!this.cache || this.cache.key !== identity.key) {
+      this.cache = { key: identity.key, data: null, fetchedAt: null, lastAttempt: null, retryAfter: null, lastStatus: "network_error" };
+    }
+    const cache = this.cache;
+    let result;
+    const now = this.now();
+    if (cache.inFlight) {
+      result = await cache.inFlight;
+    } else if (cache.retryAfter !== null && now < cache.retryAfter) {
+      result = this.result(cache, input.refresh ? "rate_limited" : cache.lastStatus, cache.lastStatus !== "ok", cache.retryAfter);
+    } else if (!input.refresh && cache.data && cache.fetchedAt !== null && now - cache.fetchedAt < CACHE_MS && cache.lastStatus === "ok") {
+      result = this.result(cache, "ok", false);
+    } else {
+      cache.lastAttempt = now;
+      cache.retryAfter = now + REFRESH_INTERVAL_MS;
+      const pending = this.fetchUsage(cache, identity);
+      cache.inFlight = pending;
+      try {
+        result = await pending;
+      } finally {
+        if (cache.inFlight === pending) cache.inFlight = void 0;
+      }
+    }
+    const current = await this.identity();
+    if (!current || current.key !== identity.key || this.cache !== cache) {
+      if (changes < 2) return this.getCurrent({ refresh: false }, changes + 1);
+      this.cache = void 0;
+      return { status: "not_authenticated", data: null, stale: false, fetchedAt: null, retryAfter: null };
+    }
+    return result;
+  }
+  request(path, token) {
+    return this.fetcher(`https://api.github.com${path}`, {
+      method: "GET",
+      redirect: "error",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "opencode-copilot-usage" }
+    });
+  }
+  async fetchLogin(identity) {
+    const failure = (loginStatus) => ({ login: null, loginStatus });
+    try {
+      const response = await this.request("/user", identity.profileToken);
+      if (response.status === 401) return failure("unauthorized");
+      if (response.status === 429 || response.status === 403 && (response.headers.get("x-ratelimit-remaining") === "0" || response.headers.has("retry-after"))) return failure("rate_limited");
+      if (response.status === 403) return failure("forbidden");
+      if (!response.ok) return failure("network_error");
+      const login = parseLogin(await response.json());
+      if (!login || login === identity.profileToken || login === identity.usageToken) return failure("invalid_response");
+      return { login, loginStatus: "ok" };
+    } catch (error) {
+      return failure(error instanceof SyntaxError ? "invalid_response" : "network_error");
+    }
+  }
+  async fetchUsage(cache, identity) {
+    const login = this.fetchLogin(identity);
+    let status = "network_error";
+    let data = null;
+    try {
+      const response = await this.request("/copilot_internal/user", identity.usageToken);
+      if (response.status === 401) status = "unauthorized";
+      else if (response.status === 403) status = "forbidden";
+      else if (response.status === 429) {
+        status = "rate_limited";
+        const header = response.headers.get("retry-after");
+        if (header) {
+          const seconds = Number(header);
+          const date = Date.parse(header);
+          const retry = Number.isFinite(seconds) && seconds >= 0 ? this.now() + seconds * 1e3 : date;
+          if (Number.isFinite(retry)) cache.retryAfter = Math.max(cache.retryAfter ?? 0, Math.min(retry, this.now() + 36e5));
+        }
+      } else if (!response.ok) status = "network_error";
+      else {
+        try {
+          data = parseUsage(await response.json());
+        } catch {
+          data = null;
+        }
+        status = data ? "ok" : "invalid_response";
+      }
+    } catch {
+      status = "network_error";
+    }
+    const profile = await login;
+    cache.lastStatus = status;
+    if (data && status === "ok") {
+      cache.data = { ...profile, ...data };
+      cache.fetchedAt = this.now();
+    }
+    return this.result(cache, status, status !== "ok", status === "ok" ? null : cache.retryAfter);
+  }
+};
+
 // src/index.ts
-var index_default = github_copilot_fusion_default;
+var index_default = Plugin2.define({
+  id: github_copilot_fusion_default.id,
+  async setup(ctx) {
+    const usage = new UsageService(ctx.integration);
+    await ctx.rpc.register(UsageRpc, {
+      get: async (input) => usage.get(input)
+    });
+    return github_copilot_fusion_default.setup(ctx);
+  }
+});
 export {
   index_default as default
 };

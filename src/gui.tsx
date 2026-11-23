@@ -25,7 +25,10 @@ import {
   setupModelTester,
   triggerModelTest,
   modelTesterCss,
-} from "./model-tester"
+} from "./model-availability-tester"
+import { UsageRpc, type UsageResult } from "./github-copilot-usage/rpc"
+import { formatUsageDate, isCreditQuota, usedPercentage } from "./github-copilot-usage/view"
+import usageCss from "./github-copilot-usage/usage.css?inline"
 
 const PAGE_SIZE = 100
 
@@ -37,6 +40,38 @@ const definition = Plugin.define({
       "command.unpinCurrent": "Unfavorite current session",
       "command.clear": "Clear unfavorited sessions",
       "command.openManager": "Open Session Manager",
+      "command.openCopilotUsage": "Open GitHub Copilot Usage",
+      "usage.title": "GitHub Copilot Usage",
+      "usage.description": "Account-wide Copilot usage",
+      "usage.refresh": "Refresh",
+      "usage.close": "Close",
+      "usage.loading": "Loading Copilot usage…",
+      "usage.unavailable": "Unavailable",
+      "usage.usernameUnavailable": "Username unavailable",
+      "usage.profile.unauthorized": "GitHub profile: authorization failed (401)",
+      "usage.profile.forbidden": "GitHub profile: access denied (403)",
+      "usage.profile.rateLimited": "GitHub profile: rate limited (429)",
+      "usage.profile.network": "GitHub profile: connection failed",
+      "usage.profile.invalid": "GitHub profile: invalid response",
+      "usage.used": "Used",
+      "usage.remaining": "Remaining",
+      "usage.total": "Total",
+      "usage.usedPercent": "AI credits used",
+      "usage.reset": "Resets",
+      "usage.updated": "Data updated",
+      "usage.unlimited": "Unlimited",
+      "usage.noQuota": "No quota available",
+      "usage.notTokenBilled": "Not token-based billing; AI credits unavailable",
+      "usage.unknownBilling": "Billing type unavailable; AI credits unavailable",
+      "usage.stale": "Data may be out of date.",
+      "usage.note": "Based on a GitHub internal API. Data may be delayed or change without notice.",
+      "usage.error.connection": "Connect GitHub Copilot in OpenCode to view usage.",
+      "usage.error.unauthorized": "GitHub authorization failed. Reconnect GitHub Copilot and try again.",
+      "usage.error.forbidden": "GitHub denied access to Copilot usage for this account.",
+      "usage.error.network": "Could not reach GitHub. Check your connection and try again.",
+      "usage.error.response": "GitHub returned an unexpected response. Usage is unavailable.",
+      "usage.error.rateLimited": "Refresh is temporarily limited. Try again shortly.",
+      "usage.error.generic": "Could not load Copilot usage. Try again.",
       "command.testEnabledModels": "Test Enabled Models",
       "toast.pinned": "Session favorited",
       "toast.unpinned": "Session removed from favorites",
@@ -126,6 +161,7 @@ const definition = Plugin.define({
 
     ctx.add(Style, favoritesCss)
     ctx.add(Style, modelTesterCss)
+    ctx.add(Style, usageCss)
     setupModelTester(ctx)
 
     const builtinServer = () => ctx.servers.list().map((id) => ctx.servers.get(id)).find((server) => server?.builtin)
@@ -405,6 +441,199 @@ const definition = Plugin.define({
         else openManager()
       },
     }))
+
+    const [usageOpen, setUsageOpen] = createSignal(false)
+    const [cachedUsageResult, setCachedUsageResult] = createSignal<UsageResult>()
+    let usageDialog: DialogHandle | undefined
+
+    // Proactively query usage periodically in background so titlebar button displays current percentage
+    async function backgroundPollUsage() {
+      try {
+        const res = await ctx.client.rpc(UsageRpc).get({ refresh: false }, { signal: ctx.signal })
+        setCachedUsageResult(res as UsageResult)
+      } catch {
+        // Silent failure for background metric lookup
+      }
+    }
+    void backgroundPollUsage()
+    const pollInterval = setInterval(() => void backgroundPollUsage(), 5 * 60_000)
+    onCleanup(() => clearInterval(pollInterval))
+
+    function openUsage() {
+      if (usageOpen()) return
+      setUsageOpen(true)
+      usageDialog = ctx.dialogs.open((dialog) => {
+        onCleanup(() => {
+          usageDialog = undefined
+          setUsageOpen(false)
+        })
+        return <UsagePage dialog={dialog} initialResult={cachedUsageResult()} onResultChange={setCachedUsageResult} />
+      })
+    }
+
+    ctx.add(Command, () => ({
+      id: "open-copilot-usage",
+      title: ctx.t("command.openCopilotUsage"),
+      group: ctx.t("usage.title"),
+      run: openUsage,
+    }))
+
+    const copilotUsageTitlebarLabel = createMemo(() => {
+      const q = cachedUsageResult()?.data?.quotas?.premiumInteractions
+      const percent = usedPercentage(q)
+      if (typeof percent === "number") {
+        return `GitHub Copilot Usage ${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(percent)}%`
+      }
+      return ctx.t("usage.title")
+    })
+
+    ctx.add(TitlebarItem, (): TitlebarItem => ({
+      id: "copilot-usage",
+      label: copilotUsageTitlebarLabel(),
+      title: `opencode-desktop-manager: ${ctx.t("command.openCopilotUsage")}`,
+      icon: "github",
+      pressed: usageOpen(),
+      run: () => {
+        if (usageOpen()) usageDialog?.close()
+        else openUsage()
+      },
+    }))
+
+    function UsagePage(props: {
+      dialog: DialogHandle
+      initialResult?: UsageResult
+      onResultChange?: (result: UsageResult) => void
+    }) {
+      const ui = ctx.ui
+      const [result, setResult] = createSignal<UsageResult | undefined>(props.initialResult)
+      const [loading, setLoading] = createSignal(false)
+      const [failed, setFailed] = createSignal(false)
+      let disposed = false
+      const controller = new AbortController()
+      let timer: ReturnType<typeof setInterval> | undefined
+      onCleanup(() => {
+        disposed = true
+        controller.abort()
+        if (timer !== undefined) clearInterval(timer)
+      })
+
+      async function load(refresh: boolean) {
+        if (loading()) return
+        setLoading(true)
+        setFailed(false)
+        try {
+          const response = await ctx.client.rpc(UsageRpc).get({ refresh }, { signal: controller.signal })
+          if (!disposed) {
+            setResult(response as UsageResult)
+            props.onResultChange?.(response as UsageResult)
+          }
+        } catch {
+          // Do not surface exception text: it may contain request or authentication details.
+          if (!disposed) setFailed(true)
+        } finally {
+          if (!disposed) setLoading(false)
+        }
+      }
+
+      onMount(() => {
+        void load(false)
+        timer = setInterval(() => void load(false), 5 * 60_000)
+      })
+
+      const data = () => result()?.data
+      const quota = () => data()?.quotas.premiumInteractions
+      const creditMode = () => isCreditQuota(quota())
+      const usedPercent = () => usedPercentage(quota())
+      const number = (value: number | null | undefined) =>
+        typeof value === "number" && Number.isFinite(value) ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value) : ctx.t("usage.unavailable")
+      const date = (value: string | null | undefined) => formatUsageDate(value) ?? ctx.t("usage.unavailable")
+      const quotaStatus = () => {
+        const value = quota()
+        if (!value) return ctx.t("usage.unavailable")
+        if (value.unlimited === true) return ctx.t("usage.unlimited")
+        if (value.hasQuota === false) return ctx.t("usage.noQuota")
+        if (value.tokenBasedBilling === false) return ctx.t("usage.notTokenBilled")
+        if (value.tokenBasedBilling !== true) return ctx.t("usage.unknownBilling")
+        return ctx.t("usage.unavailable")
+      }
+      const profileError = () => {
+        switch (data()?.loginStatus) {
+          case "unauthorized": return ctx.t("usage.profile.unauthorized")
+          case "forbidden": return ctx.t("usage.profile.forbidden")
+          case "rate_limited": return ctx.t("usage.profile.rateLimited")
+          case "network_error": return ctx.t("usage.profile.network")
+          case "invalid_response": return ctx.t("usage.profile.invalid")
+          default: return ""
+        }
+      }
+      const error = () => {
+        if (failed()) return ctx.t("usage.error.generic")
+        switch (result()?.status) {
+          case "not_authenticated": return ctx.t("usage.error.connection")
+          case "unauthorized": return ctx.t("usage.error.unauthorized")
+          case "forbidden": return ctx.t("usage.error.forbidden")
+          case "network_error": return ctx.t("usage.error.network")
+          case "invalid_response": return ctx.t("usage.error.response")
+          case "rate_limited": return ctx.t("usage.error.rateLimited")
+          default: return ""
+        }
+      }
+
+      return (
+        <ui.Dialog
+          title={ctx.t("usage.title")}
+          description={ctx.t("usage.description")}
+          footer={<ui.Button variant="neutral" onClick={() => props.dialog.close()}>{ctx.t("usage.close")}</ui.Button>}
+        >
+          <div class="odm-usage">
+            <div class="odm-usage-top">
+              <Show when={data()}>
+                <div class="odm-usage-account">
+                  <span class="odm-usage-account-icon"><ui.Icon name="github" size="small" /></span>
+                  <div>
+                    <div class="odm-usage-account-name">{data()?.login ?? ctx.t("usage.usernameUnavailable")}</div>
+                    <div class="odm-usage-muted">{data()?.plan ?? ctx.t("usage.unavailable")}</div>
+                    <Show when={!data()?.login && profileError()}>
+                      <div class="odm-usage-profile-error">{profileError()}</div>
+                    </Show>
+                  </div>
+                </div>
+              </Show>
+              <ui.Button variant="ghost" onClick={() => void load(true)} disabled={loading()} busy={loading()}>
+                {ctx.t("usage.refresh")}
+              </ui.Button>
+            </div>
+            <Show when={loading() && !result()}><div>{ctx.t("usage.loading")}</div></Show>
+            <div role="status" class="odm-usage-feedback">
+              <Show when={error() || result()?.stale || (failed() && data())}>
+                <div class="odm-usage-status">
+                  {error()} {result()?.stale || (failed() && data()) ? ctx.t("usage.stale") : ""}
+                </div>
+              </Show>
+            </div>
+            <Show when={data()}>
+              <div class="odm-usage-hero">
+                <div class="odm-usage-muted">{ctx.t("usage.usedPercent")}</div>
+                <Show when={usedPercent() !== undefined} fallback={<div class="odm-usage-status">{quotaStatus()}</div>}>
+                  <div class="odm-usage-percentage">{number(usedPercent())}%</div>
+                  <meter class="odm-usage-meter" min="0" max="100" value={usedPercent()} aria-label={ctx.t("usage.usedPercent")} />
+                </Show>
+              </div>
+              <dl class="odm-usage-stats">
+                <div><dt>{ctx.t("usage.used")}</dt><dd>{number(creditMode() ? quota()?.creditsUsed : null)}</dd></div>
+                <div><dt>{ctx.t("usage.remaining")}</dt><dd>{number(creditMode() ? quota()?.remaining : null)}</dd></div>
+                <div><dt>{ctx.t("usage.total")}</dt><dd>{number(creditMode() ? quota()?.entitlement : null)}</dd></div>
+              </dl>
+              <dl class="odm-usage-times">
+                <div><dt>{ctx.t("usage.reset")}</dt><dd>{date(data()?.resetDate)}</dd></div>
+                <div><dt>{ctx.t("usage.updated")}</dt><dd>{date(quota()?.timestampUtc)}</dd></div>
+              </dl>
+              <div class="odm-usage-muted">{ctx.t("usage.note")}</div>
+            </Show>
+          </div>
+        </ui.Dialog>
+      )
+    }
 
     function ManagerPage(props: { dialog: DialogHandle }) {
       const ui = ctx.ui

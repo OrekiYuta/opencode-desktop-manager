@@ -1,0 +1,123 @@
+/* Scoped to the account-wide usage dialog; inherit the host's colors and typography. */
+.odm-usage {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.odm-usage-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.odm-usage-top > button {
+  margin-inline-start: auto;
+}
+
+.odm-usage-feedback:empty {
+  display: none;
+}
+
+.odm-usage-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.odm-usage-account-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-base, #dce1e7);
+  border-radius: 9px;
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.06));
+}
+
+.odm-usage-account-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.odm-usage-profile-error {
+  margin-top: 2px;
+  color: var(--text-weak, #808b99);
+  font-size: 11px;
+}
+
+.odm-usage-muted {
+  color: var(--text-weak, #808b99);
+  font-size: 12px;
+}
+
+.odm-usage-hero {
+  display: grid;
+  gap: 8px;
+}
+
+.odm-usage-percentage {
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.odm-usage-meter {
+  width: 100%;
+  height: 10px;
+  accent-color: var(--icon-interactive-base, #608dd9);
+}
+
+.odm-usage-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.odm-usage-stats dt,
+.odm-usage-times dt {
+  color: var(--text-weak, #808b99);
+  font-size: 12px;
+}
+
+.odm-usage-stats dd {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.odm-usage-times {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--border-base, #dce1e7);
+  padding-top: 14px;
+  margin: 0;
+}
+
+.odm-usage-times > div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.odm-usage-times dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.odm-usage-status {
+  padding: 10px 12px;
+  border: 1px solid var(--border-base, #dce1e7);
+  border-radius: 6px;
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.06));
+  overflow-wrap: anywhere;
+}
+

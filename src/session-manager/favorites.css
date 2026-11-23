@@ -3,17 +3,19 @@
 [data-slot="titlebar-update"]:has(> button[aria-label^="opencode-desktop-manager: "]) {
   width: max-content;
   height: 28px;
-  align-self: center;
+  align-self: flex-start;
   margin-inline-end: 8px;
+  margin-block: 2px;
   border-radius: 6px;
   transition: none;
 }
 
 [data-slot="titlebar-update"] > button[aria-label^="opencode-desktop-manager: "] {
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   padding-inline: 8px;
   border-radius: 6px;
+  text-align: left;
 }
 
 [data-slot="titlebar-update"] > button[aria-label^="opencode-desktop-manager: "] > [data-slot="titlebar-update-label"] {

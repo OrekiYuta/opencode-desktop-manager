@@ -8,6 +8,11 @@ A session management, favorites, and Copilot Fusion router plugin for **OpenCode
   - Registers the `github-copilot/fusion` model with variants (`#standard`, `#high`, `#max`).
   - Seamlessly routes conversation turns via GitHub Copilot's `/auto` routing endpoint using your existing Copilot OAuth connection.
   - Automatically manages sticky sessions, anchor model degradation, and session token caching.
+- **GitHub Copilot Usage (Desktop + Server Plugin):**
+  - Opens an account-wide usage dialog from the titlebar next to Session Manager or from the command palette.
+  - Shows the GitHub username when available, Copilot plan, AI credits, reset and snapshot times, and a manual refresh button. Values that cannot be verified are shown as unavailable.
+  - Uses the active OpenCode GitHub Copilot OAuth connection on the server. It queries GitHub's internal `copilot_internal/user` endpoint and the authenticated GitHub user endpoint; no model request is made. Credentials and raw responses are never sent to the GUI.
+  - GitHub's internal endpoint is undocumented and may change; its credit fields have not been verified for every Copilot plan. Data may be delayed or temporarily unavailable. The dialog labels stale data and authorization or network failures.
 - **Model Tester (GUI Plugin):**
   - Instant latency and functional testing for all enabled models directly inside OpenCode's Model Settings dialog.
   - Visual badges with latency metrics, status tooltips, and re-test capabilities.
@@ -63,6 +68,16 @@ Clone the repository and reference its local directory in `~/.config/opencode/op
 }
 ```
 
+## View Copilot Usage
+
+1. Connect GitHub Copilot in OpenCode and make the intended connection active.
+2. In OpenCode Desktop, click **GitHub Copilot Usage** beside **Session Manager**, or search for **Open GitHub Copilot Usage** in the command palette.
+3. The dialog checks for updated data every five minutes while open and offers **Refresh**. Successful responses are cached for 60 seconds; requests are limited to one every 15 seconds per active connection, with longer backoff when GitHub requests it. A snapshot older than one hour, or retained after an unsuccessful refresh, is marked stale.
+
+The GitHub username is fetched separately and may be unavailable even when usage is available. Credit values and percentages are shown only when the response establishes a token-billed, finite quota. Unlimited, non-token-billed, missing or unrecognized fields are not treated as AI credits. Dates are displayed in the local time zone.
+
+The GUI plugin API is experimental; button placement and compatibility depend on the Desktop release. Usage is for the active account, not the current conversation. The endpoint and field meanings are based on observed responses and may differ by plan; they are not a stable GitHub public API.
+
 ## Development & Build
 
 Requires Node.js (v20+) and an OpenCode Desktop release supporting the V2 GUI plugin API.
@@ -91,7 +106,7 @@ npm test
 npm run test:ui
 ```
 
-Open `http://127.0.0.1:5188/tests/model-tester/model-tester.html` and click **Run regression checks**
+Open `http://127.0.0.1:5188/tests/model-availability-tester/model-tester.html` and click **Run regression checks**
 to verify the model tester against the OpenCode 2.3 dialog/settings DOM structure.
 The fixture uses a mock model service and covers centered/responsive sizing, scoped
 badges and controls, search updates, cancellation, and plugin cleanup.
