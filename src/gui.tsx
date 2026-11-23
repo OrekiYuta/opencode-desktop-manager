@@ -826,57 +826,8 @@ const definition = Plugin.define({
       }
 
       const actions = () => (
-        <>
-          <ui.Button
-            variant="neutral"
-            onClick={() => {
-              if (normalizedQuery()) setSearchCollapsedProjects([])
-              else {
-                setCollapsedProjects([])
-                setExpandedRecentProjects(recentGroups().map((group) => `recent:${group.key}`))
-              }
-            }}
-          >
-            {ctx.t("action.expandAll")}
-          </ui.Button>
-          <ui.Button
-            variant="neutral"
-            onClick={() => {
-              const keys = [
-                ...favoriteGroups().map((group) => `favorites:${group.key}`),
-                ...recentGroups().map((group) => `recent:${group.key}`),
-              ]
-              if (normalizedQuery()) setSearchCollapsedProjects(keys)
-              else {
-                setCollapsedProjects(keys)
-                setExpandedRecentProjects([])
-              }
-            }}
-          >
-            {ctx.t("action.collapseAll")}
-          </ui.Button>
-          <ui.Button
-            variant="neutral"
-            onClick={() => void loadSessions(false)}
-            disabled={loading()}
-            busy={loading()}
-          >
-            {ctx.t("settings.refresh")}
-          </ui.Button>
-          <ui.Button
-            variant="danger"
-            onClick={() => void clearUnpinnedSessions()}
-            disabled={clearBusy()}
-            busy={clearBusy()}
-          >
-            {ctx.t("action.clear")}
-          </ui.Button>
-        </>
-      )
-
-      const content = () => (
-        <>
-          <div class="odm-manager-search">
+        <div class="odm-manager-toolbar-row">
+          <div class="odm-manager-search-box">
             <ui.TextInput
               label={ctx.t("settings.filter")}
               placeholder={ctx.t("settings.filterPlaceholder")}
@@ -885,7 +836,57 @@ const definition = Plugin.define({
               type="search"
             />
           </div>
+          <div class="odm-manager-buttons">
+            <ui.Button
+              variant="neutral"
+              onClick={() => {
+                if (normalizedQuery()) setSearchCollapsedProjects([])
+                else {
+                  setCollapsedProjects([])
+                  setExpandedRecentProjects(recentGroups().map((group) => `recent:${group.key}`))
+                }
+              }}
+            >
+              {ctx.t("action.expandAll")}
+            </ui.Button>
+            <ui.Button
+              variant="neutral"
+              onClick={() => {
+                const keys = [
+                  ...favoriteGroups().map((group) => `favorites:${group.key}`),
+                  ...recentGroups().map((group) => `recent:${group.key}`),
+                ]
+                if (normalizedQuery()) setSearchCollapsedProjects(keys)
+                else {
+                  setCollapsedProjects(keys)
+                  setExpandedRecentProjects([])
+                }
+              }}
+            >
+              {ctx.t("action.collapseAll")}
+            </ui.Button>
+            <ui.Button
+              variant="neutral"
+              onClick={() => void loadSessions(false)}
+              disabled={loading()}
+              busy={loading()}
+            >
+              {ctx.t("settings.refresh")}
+            </ui.Button>
+            <ui.Button
+              variant="danger"
+              onClick={() => void clearUnpinnedSessions()}
+              disabled={clearBusy()}
+              busy={clearBusy()}
+            >
+              {ctx.t("action.clear")}
+            </ui.Button>
+          </div>
+        </div>
+      )
 
+      const content = () => (
+        <>
           <ui.SettingsSection title={ctx.t("settings.pinned")}>
             <Show
               when={favoriteGroups().length > 0}

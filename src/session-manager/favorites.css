@@ -17,7 +17,7 @@
   border-radius: 6px;
   text-align: left;
   background: transparent;
-  color: var(--text-base, inherit);
+  color: var(--text-base, inherit) !important;
   border: 1px solid var(--border-base, #dce1e7);
 }
 
@@ -49,8 +49,34 @@
   margin-bottom: 20px;
 }
 
-.odm-manager-search {
-  margin-bottom: 20px;
+.odm-manager-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+.odm-manager-search-box {
+  flex: 1;
+  min-width: 220px;
+  max-width: 380px;
+}
+
+.odm-manager-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.odm-recent-card {
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--border-base, #dce1e7);
+  border-radius: 6px;
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.03));
 }
 
 .odm-project-group {
@@ -265,6 +291,7 @@
 
 .odm-recent-card {
   min-width: 0;
+  padding: 4px 8px;
   border: 1px solid var(--border-base, #dce1e7);
   border-radius: 6px;
   background: var(--surface-raised-base, rgba(127, 127, 127, 0.03));
