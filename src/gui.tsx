@@ -953,7 +953,7 @@ const definition = Plugin.define({
                           >
                             <div class="odm-recent-actions">
                               <ui.Button
-                                variant="contrast"
+                                variant="neutral"
                                 onClick={() =>
                                   togglePin(session.id, session.title || "", builtinServer(), {
                                     projectID: session.projectID,
@@ -964,7 +964,7 @@ const definition = Plugin.define({
                                 {ctx.t("action.pin")}
                               </ui.Button>
                               <ui.Button
-                                variant="ghost"
+                                variant="danger"
                                 onClick={() =>
                                   void deleteSingleSession({
                                     id: session.id,
