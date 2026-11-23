@@ -10,7 +10,7 @@ import {
   isFreeUsageLimitError,
   testSingleModel,
   testMultipleModels,
-} from "../../src/model-tester/tester.ts"
+} from "../../src/model-availability-tester/tester.ts"
 
 test("modelKey formats providerID and modelID", () => {
   assert.equal(modelKey("openai", "gpt-4o"), "openai:gpt-4o")
