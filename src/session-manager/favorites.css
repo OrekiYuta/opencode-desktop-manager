@@ -16,6 +16,20 @@
   padding-inline: 8px;
   border-radius: 6px;
   text-align: left;
+  background: transparent;
+  color: var(--text-base, inherit);
+  border: 1px solid var(--border-base, #dce1e7);
+}
+
+[data-slot="titlebar-update"] > button[aria-label^="opencode-desktop-manager: "]:hover {
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.08));
+}
+
+.odm-titlebar-percent {
+  color: var(--text-success, #2e7d32);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-inline-start: 4px;
 }
 
 [data-slot="titlebar-update"] > button[aria-label^="opencode-desktop-manager: "] > [data-slot="titlebar-update-label"] {
@@ -237,7 +251,34 @@
   }
 }
 
-/* Expanded dialog dimensions for comfortable session management */
+.odm-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .odm-recent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.odm-recent-card {
+  min-width: 0;
+  border: 1px solid var(--border-base, #dce1e7);
+  border-radius: 6px;
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.03));
+}
+
+.odm-recent-card > div {
+  border-bottom: 0 !important;
+}
+
+.odm-recent-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 [data-component="dialog-v2"][data-size="x-large"]:has(.odm-manager-dialog) > [data-slot="dialog-container"] {
   width: min(calc(100vw - 48px), 1280px);
   height: min(calc(100vh - 64px), 840px);

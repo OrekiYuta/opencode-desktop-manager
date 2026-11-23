@@ -106,6 +106,10 @@ const definition = Plugin.define({
       "action.favorited": "Favorited",
       "action.openFavorite": "Open session: {{title}}",
       "action.removeFavorite": "Unfavorite {{title}} (does not delete the session)",
+      "action.deleteSession": "Delete session {{title}}",
+      "deleteSession.title": "Delete session?",
+      "deleteSession.description": "This permanently deletes \"{{title}}\" from the built-in service.",
+      "deleteSession.confirm": "Delete",
       "action.clear": "Clear unfavorited",
       "action.cancel": "Cancel",
       "action.closeManager": "Close manager",
@@ -295,6 +299,24 @@ const definition = Plugin.define({
       return sessions
     }
 
+    async function deleteSingleSession(session: { id: string; title: string }) {
+      const confirmed = await ctx.dialogs.confirm({
+        title: ctx.t("deleteSession.title"),
+        description: ctx.t("deleteSession.description", { title: session.title || ctx.t("settings.untitled") }),
+        confirm: ctx.t("deleteSession.confirm"),
+        cancel: ctx.t("action.cancel"),
+        danger: true,
+      })
+      if (!confirmed) return
+      try {
+        await ctx.client.session.remove({ sessionID: session.id }, { signal: ctx.signal })
+        setRefreshVersion((version) => version + 1)
+        ctx.toast.show({ variant: "success", title: ctx.t("toast.clearComplete", { count: 1 }) })
+      } catch {
+        ctx.toast.show({ variant: "error", title: ctx.t("toast.clearFailed") })
+      }
+    }
+
     async function clearUnpinnedSessions() {
       if (clearBusy()) return
       setClearBusy(true)
@@ -482,7 +504,8 @@ const definition = Plugin.define({
       const q = cachedUsageResult()?.data?.quotas?.premiumInteractions
       const percent = usedPercentage(q)
       if (typeof percent === "number") {
-        return `GitHub Copilot Usage ${new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(percent)}%`
+        const numStr = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(percent)
+        return `GitHub Copilot Usage (${numStr}%)`
       }
       return ctx.t("usage.title")
     })
@@ -919,26 +942,43 @@ const definition = Plugin.define({
                   expanded={expanded(`recent:${group.key}`)}
                   onToggle={() => toggleProject(`recent:${group.key}`)}
                 >
-                  <For each={group.sessions}>
-                    {(session) => (
-                      <ui.SettingsRow
-                        title={session.title || ctx.t("settings.untitled")}
-                        description={updatedDescription(session.time.updated)}
-                      >
-                        <ui.Button
-                          variant="contrast"
-                          onClick={() =>
-                            togglePin(session.id, session.title || "", builtinServer(), {
-                              projectID: session.projectID,
-                              directory: session.location.directory,
-                            })
-                          }
-                        >
-                          {ctx.t("action.pin")}
-                        </ui.Button>
-                      </ui.SettingsRow>
-                    )}
-                  </For>
+                  <div class="odm-recent-grid">
+                    <For each={group.sessions}>
+                      {(session) => (
+                        <div class="odm-recent-card">
+                          <ui.SettingsRow
+                            title={session.title || ctx.t("settings.untitled")}
+                            description={updatedDescription(session.time.updated)}
+                          >
+                            <div class="odm-recent-actions">
+                              <ui.Button
+                                variant="contrast"
+                                onClick={() =>
+                                  togglePin(session.id, session.title || "", builtinServer(), {
+                                    projectID: session.projectID,
+                                    directory: session.location.directory,
+                                  })
+                                }
+                              >
+                                {ctx.t("action.pin")}
+                              </ui.Button>
+                              <ui.Button
+                                variant="ghost"
+                                onClick={() =>
+                                  void deleteSingleSession({
+                                    id: session.id,
+                                    title: session.title || ctx.t("settings.untitled"),
+                                  })
+                                }
+                              >
+                                {ctx.t("deleteSession.confirm")}
+                              </ui.Button>
+                            </div>
+                          </ui.SettingsRow>
+                        </div>
+                      )}
+                    </For>
+                  </div>
                 </ProjectGroupSection>
               )}
             </For>
