@@ -72,18 +72,17 @@
   gap: 8px;
 }
 
-.odm-recent-card {
-  min-width: 0;
-  padding: 4px 6px;
-  border: 1px solid var(--border-base, #dce1e7);
-  border-radius: 6px;
-  background: var(--surface-raised-base, rgba(127, 127, 127, 0.03));
+.odm-manager-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .odm-project-group {
   margin: 8px 0;
   border: 1px solid var(--border-base, #dce1e7);
   border-radius: 7px;
+  background: var(--surface-base, transparent);
   overflow: hidden;
 }
 
@@ -95,6 +94,7 @@
   padding: 10px 12px;
   border: 0;
   background: var(--surface-raised-base, rgba(127, 127, 127, 0.06));
+  background: color-mix(in srgb, var(--text-base, currentColor) 6%, var(--surface-base, transparent));
   color: var(--text-base, inherit);
   font: inherit;
   text-align: left;
@@ -139,7 +139,9 @@
 }
 
 .odm-project-content {
-  padding: 4px 8px;
+  margin-inline-start: 24px;
+  padding: 12px;
+  border-inline-start: 2px solid var(--border-base, #dce1e7);
 }
 
 .odm-project-toggle:focus-visible {
@@ -186,8 +188,14 @@
   align-items: center;
   gap: 8px;
   padding: 2px 8px 2px 2px;
-  margin: 2px 0;
+  margin: 0;
+  border: 1px solid var(--border-base, #dce1e7);
   border-radius: 6px;
+  background: var(--surface-raised-base, rgba(127, 127, 127, 0.03));
+}
+
+.odm-favorite-row:not(:last-child) {
+  margin-block-end: 8px;
 }
 
 .odm-favorite-row:hover,

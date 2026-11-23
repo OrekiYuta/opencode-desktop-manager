@@ -886,7 +886,7 @@ const definition = Plugin.define({
       )
 
       const content = () => (
-        <>
+        <div class="odm-manager-sections">
           <ui.SettingsSection title={ctx.t("settings.pinned")}>
             <Show
               when={favoriteGroups().length > 0}
@@ -996,7 +996,7 @@ const definition = Plugin.define({
               </ui.SettingsRow>
             </Show>
           </ui.SettingsSection>
-        </>
+        </div>
       )
 
       return (
