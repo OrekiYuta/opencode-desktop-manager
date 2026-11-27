@@ -258,21 +258,57 @@
 }
 
 .odm-session-card {
+  container: session-card / inline-size;
   min-width: 0;
-  padding: 4px 8px;
+  padding: 10px;
   border: 1px solid var(--border-base, #dce1e7);
   border-radius: 6px;
   background: var(--surface-raised-base, rgba(127, 127, 127, 0.03));
 }
 
-.odm-session-card > div {
-  border-bottom: 0 !important;
+.odm-session-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-inline-size: 0;
+}
+
+.odm-session-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-inline-size: 0;
+}
+
+.odm-session-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.odm-session-card-description {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-weak, #808b99);
 }
 
 .odm-session-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 6px;
+}
+
+@container session-card (inline-size < 260px) {
+  .odm-session-actions {
+    justify-content: stretch;
+  }
+
+  .odm-session-actions > button {
+    flex: 1 1 auto;
+  }
 }
 /*
  * The host left-aligns x-large dialogs and offsets them using its own

@@ -45,10 +45,10 @@ function FixtureCards(props: {
       sessions={props.sessions}
       renderCard={(session) => (
         <div class="odm-session-card">
-          <div class="fixture-session-row">
-            <div class="fixture-session-copy">
-              <span class="fixture-session-title">{session.title}</span>
-              <span class="fixture-session-description">{session.description}</span>
+          <div class="odm-session-card-content">
+            <div class="odm-session-card-copy">
+              <div class="odm-session-card-title">{session.title}</div>
+              <div class="odm-session-card-description">{session.description}</div>
             </div>
             <div class="odm-session-actions">
               <button class="fixture-action" onClick={() => props.onOpen(session)}>Open</button>

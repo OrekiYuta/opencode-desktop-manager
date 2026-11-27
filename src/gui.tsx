@@ -910,7 +910,11 @@ const definition = Plugin.define({
                         sessions={group.sessions}
                         renderCard={(session) => (
                           <div class="odm-session-card">
-                            <ui.SettingsRow title={session.title} description={session.description}>
+                            <div class="odm-session-card-content">
+                              <div class="odm-session-card-copy">
+                                <div class="odm-session-card-title">{session.title}</div>
+                                <div class="odm-session-card-description">{session.description}</div>
+                              </div>
                               <div class="odm-session-actions">
                                 <ui.Button
                                   variant="neutral"
@@ -926,7 +930,7 @@ const definition = Plugin.define({
                                   {ctx.t("action.unpin")}
                                 </ui.Button>
                               </div>
-                            </ui.SettingsRow>
+                            </div>
                           </div>
                         )}
                       />
@@ -963,10 +967,15 @@ const definition = Plugin.define({
                       sessions={group.sessions}
                       renderCard={(session) => (
                         <div class="odm-session-card">
-                          <ui.SettingsRow
-                            title={session.title || ctx.t("settings.untitled")}
-                            description={updatedDescription(session.time.updated)}
-                          >
+                          <div class="odm-session-card-content">
+                            <div class="odm-session-card-copy">
+                              <div class="odm-session-card-title">
+                                {session.title || ctx.t("settings.untitled")}
+                              </div>
+                              <div class="odm-session-card-description">
+                                {updatedDescription(session.time.updated)}
+                              </div>
+                            </div>
                             <div class="odm-session-actions">
                               <ui.Button
                                 variant="neutral"
@@ -1001,7 +1010,7 @@ const definition = Plugin.define({
                                 {ctx.t("deleteSession.confirm")}
                               </ui.Button>
                             </div>
-                          </ui.SettingsRow>
+                          </div>
                         </div>
                       )}
                     />
