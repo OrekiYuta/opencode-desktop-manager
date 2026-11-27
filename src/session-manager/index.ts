@@ -1,5 +1,7 @@
 export * from "./favorites"
 export * from "./favorites-ui"
+export * from "./open-session"
 export * from "./project-groups"
+export * from "./session-card-grid"
 export * from "./project-group-ui"
 export { default as favoritesCss } from "./favorites.css?inline"

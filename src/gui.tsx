@@ -15,11 +15,12 @@ import {
   findFavorite,
   type Favorite,
   FavoriteButton,
-  FavoriteList,
   favoritesCss,
   groupSessionsByProject,
+  openSession,
   type ProjectInfo,
   ProjectGroupSection,
+  SessionCardGrid,
 } from "./session-manager"
 import {
   setupModelTester,
@@ -85,7 +86,7 @@ const definition = Plugin.define({
       "toast.clearCancelled": "Session cleanup cancelled.",
       "settings.title": "Session Manager",
       "settings.description":
-        "Click a favorite to open it. × only removes the favorite. Clearing permanently deletes unfavorited, non-archived root sessions and their child sessions from the built-in service across projects.",
+        "Open a session to switch to it. Unfavorite only removes it from this list. Clearing permanently deletes unfavorited, non-archived root sessions and their child sessions from the built-in service across projects.",
       "settings.pinned": "Favorite sessions",
       "settings.recent": "Recent sessions",
       "settings.filter": "Filter sessions",
@@ -102,12 +103,11 @@ const definition = Plugin.define({
       "settings.unknownProject": "Unknown project",
       "settings.filterPlaceholder": "Search sessions or projects",
       "settings.emptyFavoriteMatches": "No favorites match this search.",
+      "action.open": "Open",
       "action.pin": "Favorite",
       "action.unpin": "Unfavorite",
       "action.favoriteSession": "Favorite this session",
       "action.favorited": "Favorited",
-      "action.openFavorite": "Open session: {{title}}",
-      "action.removeFavorite": "Unfavorite {{title}} (does not delete the session)",
       "action.deleteSession": "Delete session {{title}}",
       "deleteSession.title": "Delete session?",
       "deleteSession.description": "This permanently deletes \"{{title}}\" from the built-in service.",
@@ -244,18 +244,14 @@ const definition = Plugin.define({
       ctx.toast.show({ variant: "success", title: ctx.t("toast.unpinned") })
     }
 
-    async function openFavorite(favorite: Favorite): Promise<boolean> {
-      const server = favorite.server === undefined ? builtinServer() : ctx.servers.get(favorite.server)
-      try {
-        if (!server) throw new Error("Favorite server is unavailable")
-        await server.client.session.get({ sessionID: favorite.id }, { signal: ctx.signal })
-        if (ctx.signal.aborted) return false
-        ctx.tabs.open({ server: server.id, id: favorite.id }, { focus: true })
-        return true
-      } catch {
-        if (!ctx.signal.aborted) ctx.toast.show({ variant: "error", title: ctx.t("error.open") })
-        return false
-      }
+    function openSessionInApp(session: { id: string; server?: string }): Promise<boolean> {
+      return openSession(session, {
+        signal: ctx.signal,
+        builtin: builtinServer(),
+        server: (id) => ctx.servers.get(id),
+        open: (target) => ctx.tabs.open(target, { focus: true }),
+        onError: () => ctx.toast.show({ variant: "error", title: ctx.t("error.open") }),
+      })
     }
 
     ctx.add(Slot, {
@@ -909,16 +905,29 @@ const definition = Plugin.define({
                     expanded={expanded(`favorites:${group.key}`)}
                     onToggle={() => toggleProject(`favorites:${group.key}`)}
                   >
-                    <FavoriteList
+                    <SessionCardGrid
                       sessions={group.sessions}
-                      openLabel={(title) => ctx.t("action.openFavorite", { title })}
-                      removeLabel={(title) => ctx.t("action.removeFavorite", { title })}
-                      onOpen={(session) => {
-                        void openFavorite(session).then((opened) => {
-                          if (opened) props.dialog.close()
-                        })
-                      }}
-                      onRemove={removeFavorite}
+                      renderCard={(session) => (
+                        <div class="odm-session-card">
+                          <ui.SettingsRow title={session.title} description={session.description}>
+                            <div class="odm-session-actions">
+                              <ui.Button
+                                variant="neutral"
+                                onClick={() => {
+                                  void openSessionInApp(session).then((opened) => {
+                                    if (opened) props.dialog.close()
+                                  })
+                                }}
+                              >
+                                {ctx.t("action.open")}
+                              </ui.Button>
+                              <ui.Button variant="neutral" onClick={() => removeFavorite(session)}>
+                                {ctx.t("action.unpin")}
+                              </ui.Button>
+                            </div>
+                          </ui.SettingsRow>
+                        </div>
+                      )}
                     />
                   </ProjectGroupSection>
                 )}
@@ -947,43 +956,52 @@ const definition = Plugin.define({
                   expanded={expanded(`recent:${group.key}`)}
                   onToggle={() => toggleProject(`recent:${group.key}`)}
                 >
-                  <div class="odm-recent-grid">
-                    <For each={group.sessions}>
-                      {(session) => (
-                        <div class="odm-recent-card">
-                          <ui.SettingsRow
-                            title={session.title || ctx.t("settings.untitled")}
-                            description={updatedDescription(session.time.updated)}
-                          >
-                            <div class="odm-recent-actions">
-                              <ui.Button
-                                variant="neutral"
-                                onClick={() =>
-                                  togglePin(session.id, session.title || "", builtinServer(), {
-                                    projectID: session.projectID,
-                                    directory: session.location.directory,
-                                  })
-                                }
-                              >
-                                {ctx.t("action.pin")}
-                              </ui.Button>
-                              <ui.Button
-                                variant="danger"
-                                onClick={() =>
-                                  void deleteSingleSession({
-                                    id: session.id,
-                                    title: session.title || ctx.t("settings.untitled"),
-                                  })
-                                }
-                              >
-                                {ctx.t("deleteSession.confirm")}
-                              </ui.Button>
-                            </div>
-                          </ui.SettingsRow>
-                        </div>
-                      )}
-                    </For>
-                  </div>
+                  <SessionCardGrid
+                    sessions={group.sessions}
+                    renderCard={(session) => (
+                      <div class="odm-session-card">
+                        <ui.SettingsRow
+                          title={session.title || ctx.t("settings.untitled")}
+                          description={updatedDescription(session.time.updated)}
+                        >
+                          <div class="odm-session-actions">
+                            <ui.Button
+                              variant="neutral"
+                              onClick={() => {
+                                void openSessionInApp({ id: session.id }).then((opened) => {
+                                  if (opened) props.dialog.close()
+                                })
+                              }}
+                            >
+                              {ctx.t("action.open")}
+                            </ui.Button>
+                            <ui.Button
+                              variant="neutral"
+                              onClick={() =>
+                                togglePin(session.id, session.title || "", builtinServer(), {
+                                  projectID: session.projectID,
+                                  directory: session.location.directory,
+                                })
+                              }
+                            >
+                              {ctx.t("action.pin")}
+                            </ui.Button>
+                            <ui.Button
+                              variant="danger"
+                              onClick={() =>
+                                void deleteSingleSession({
+                                  id: session.id,
+                                  title: session.title || ctx.t("settings.untitled"),
+                                })
+                              }
+                            >
+                              {ctx.t("deleteSession.confirm")}
+                            </ui.Button>
+                          </div>
+                        </ui.SettingsRow>
+                      </div>
+                    )}
+                  />
                 </ProjectGroupSection>
               )}
             </For>

@@ -1,9 +1,10 @@
 import { For, createMemo, createSignal } from "solid-js"
 import { render } from "solid-js/web"
-import { FavoriteButton, FavoriteList } from "../src/session-manager/favorites-ui"
+import { FavoriteButton } from "../src/session-manager/favorites-ui"
 import "../src/session-manager/favorites.css"
 import { groupSessionsByProject } from "../src/session-manager/project-groups"
 import { ProjectGroupSection } from "../src/session-manager/project-group-ui"
+import { SessionCardGrid } from "../src/session-manager/session-card-grid"
 
 const styles = document.createElement("style")
 styles.textContent = `
@@ -21,9 +22,42 @@ styles.textContent = `
   .fixture-host-pill .fixture-host-label { white-space: nowrap; opacity: 0; translate: 8px; flex-shrink: 0; margin-inline: 8px; font-size: 11px; }
   .fixture-host-pill:hover .fixture-host-label { opacity: 1; translate: none; }
   .fixture-host-icon { display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; }
+  .fixture-session-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px; }
+  .fixture-session-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .fixture-session-title { font-size: 13px; }
+  .fixture-session-description { font-size: 11px; color: #738095; }
+  .fixture-action { padding: 4px 10px; border: 1px solid #dce3ec; border-radius: 5px; background: white; color: #293546; font: inherit; font-size: 12px; cursor: pointer; }
   @media(max-width: 500px) { body { padding: 20px 12px; } section { padding: 16px; } }
 `
 document.head.append(styles)
+
+type FixtureSession = { id: string; title: string; description: string }
+
+function FixtureCards(props: {
+  sessions: readonly FixtureSession[]
+  onOpen: (session: FixtureSession) => void
+  onRemove: (session: FixtureSession) => void
+}) {
+  return (
+    <SessionCardGrid
+      sessions={props.sessions}
+      renderCard={(session) => (
+        <div class="odm-session-card">
+          <div class="fixture-session-row">
+            <div class="fixture-session-copy">
+              <span class="fixture-session-title">{session.title}</span>
+              <span class="fixture-session-description">{session.description}</span>
+            </div>
+            <div class="odm-session-actions">
+              <button class="fixture-action" onClick={() => props.onOpen(session)}>Open</button>
+              <button class="fixture-action" onClick={() => props.onRemove(session)}>Unfavorite</button>
+            </div>
+          </div>
+        </div>
+      )}
+    />
+  )
+}
 
 function Fixture() {
   const initial = [
@@ -114,11 +148,9 @@ function Fixture() {
 
       <section>
         <h2>Favorite Sessions</h2>
-        <p>Click a session to switch; hover/focus reveals × to unfavorite without deletion.</p>
-        <FavoriteList
+        <p>Two-column cards with explicit Open and Unfavorite actions.</p>
+        <FixtureCards
           sessions={favorites()}
-          openLabel={(title) => `Open session: ${title}`}
-          removeLabel={(title) => `Unfavorite ${title} (does not delete the session)`}
           onOpen={(session) => {
             setOpened(session.id)
             setOpenCount((count) => count + 1)
@@ -160,10 +192,8 @@ function Fixture() {
                 )
               }
             >
-              <FavoriteList
+              <FixtureCards
                 sessions={group.sessions}
-                openLabel={(title) => `Open session: ${title}`}
-                removeLabel={(title) => `Unfavorite ${title} (does not delete the session)`}
                 onOpen={(session) => {
                   setOpened(session.id)
                   setOpenCount((count) => count + 1)
