@@ -315,11 +315,22 @@
   align-items: center;
   gap: 6px;
 }
+/*
+ * The host left-aligns x-large dialogs and offsets them using its own
+ * --dialog-height (capped at 680px). This dialog is taller, so override both
+ * to keep it vertically centered in the viewport.
+ */
+[data-component="dialog-v2"][data-size="x-large"]:has(.odm-manager-dialog) {
+  align-items: center;
+}
+
 [data-component="dialog-v2"][data-size="x-large"]:has(.odm-manager-dialog) > [data-slot="dialog-container"] {
+  --dialog-height: min(calc(100vh - 64px), 840px);
   width: min(calc(100vw - 48px), 1280px);
-  height: min(calc(100vh - 64px), 840px);
+  height: var(--dialog-height);
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 64px);
+  margin-top: 0;
 }
 
 .odm-manager-dialog {

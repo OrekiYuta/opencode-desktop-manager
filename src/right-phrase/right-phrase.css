@@ -1,0 +1,391 @@
+/* Keep Right Phrase's titlebar entry consistent with the manager's labeled pills. */
+[data-slot="titlebar-update"]:has(> button[aria-label*="Right Phrase"]) {
+  width: max-content;
+  height: 28px;
+  align-self: flex-start;
+  margin-inline-end: 8px;
+  margin-block: 2px;
+  border-radius: 6px;
+  transition: none;
+}
+
+[data-slot="titlebar-update"] > button[aria-label*="Right Phrase"] {
+  justify-content: flex-start;
+  gap: 6px;
+  padding-inline: 8px;
+  border-radius: 6px;
+  text-align: left;
+  background: transparent;
+  color: var(--text-base, inherit) !important;
+  border: 1px solid var(--border-base, #dce1e7);
+}
+
+[data-slot="titlebar-update"] > button[aria-label*="Right Phrase"]:hover {
+  background: var(--surface-raised-base, rgb(127 127 127 / .08));
+}
+
+[data-slot="titlebar-update"] > button[aria-label*="Right Phrase"] > [data-slot="titlebar-update-label"] {
+  opacity: 1;
+  translate: none;
+  transform: none;
+  margin: 0;
+  order: 1;
+  transition: none;
+}
+
+/*
+ * Match the manager's larger host dialog without affecting other dialogs.
+ * The host left-aligns tall/large/x-large dialogs and adds a margin-top based
+ * on its own --dialog-height. Override both so this taller dialog stays
+ * vertically centered instead of drifting toward the bottom of the viewport.
+ */
+[data-component="dialog-v2"][data-size="x-large"]:has(.rp-dialog) {
+  align-items: center;
+}
+
+[data-component="dialog-v2"][data-size="x-large"]:has(.rp-dialog) > [data-slot="dialog-container"] {
+  --dialog-height: min(calc(100vh - 64px), 840px);
+  width: min(calc(100vw - 48px), 1280px);
+  height: var(--dialog-height);
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 64px);
+  margin-top: 0;
+}
+
+.rp-dialog,
+.rp-dialog * {
+  box-sizing: border-box;
+}
+
+.rp-dialog {
+  --rp-muted: var(--v2-text-text-muted, rgb(128 128 128 / .95));
+  --rp-border: var(--v2-border-border-base, rgb(128 128 128 / .22));
+  --rp-accent: rgb(138 130 255);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.rp-body {
+  display: grid;
+  grid-template-columns: minmax(300px, 40%) minmax(0, 60%);
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.rp-input-column,
+.rp-results {
+  min-width: 0;
+  min-height: 0;
+}
+
+.rp-input-column {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px;
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--rp-border);
+}
+
+.rp-results {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px;
+  overflow-y: auto;
+}
+
+.rp-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.rp-label {
+  display: block;
+  margin: 0 0 9px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.rp-textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  border: 1px solid rgb(128 128 128 / .34);
+  border-radius: 9px;
+  background: var(--odm-input, rgb(128 128 128 / .07));
+  color: inherit;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.rp-textarea::placeholder {
+  color: rgb(128 128 128 / .8);
+}
+
+.rp-textarea:focus-visible {
+  outline: 2px solid var(--odm-focus, #aeb9ff);
+  outline-offset: 2px;
+}
+
+.rp-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 7px;
+  color: var(--rp-muted);
+  font-size: 11px;
+}
+
+.rp-hint {
+  display: block;
+  min-height: 34px;
+  margin-top: 3px;
+  color: var(--rp-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.rp-model-hint {
+  margin: 12px 0 0;
+  color: var(--rp-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.rp-generate {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.rp-free-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 9px 0 0;
+  color: var(--rp-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.rp-free-note::before {
+  content: "!";
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  border: 1px solid rgb(214 158 46 / .6);
+  border-radius: 50%;
+  color: rgb(214 158 46);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rp-free-note strong {
+  color: var(--v2-text-text-base, inherit);
+  font-weight: 600;
+}
+
+.rp-error {
+  margin-top: 12px;
+  border: 1px solid rgb(230 92 92 / .5);
+  border-radius: 8px;
+  background: rgb(230 92 92 / .08);
+  color: inherit;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.rp-privacy {
+  display: grid;
+  gap: 3px;
+  margin-top: auto;
+  padding-top: 22px;
+  color: var(--rp-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.rp-privacy strong {
+  color: var(--v2-text-text-base, inherit);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.rp-results-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rp-results-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.rp-results-head p {
+  margin: 5px 0 0;
+  color: var(--rp-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.rp-count {
+  flex: none;
+  border: 1px solid rgb(128 128 128 / .28);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: var(--rp-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.rp-translation {
+  border-inline-start: 2px solid rgb(138 130 255 / .75);
+  padding: 2px 0 2px 14px;
+  margin-bottom: 16px;
+}
+
+.rp-translation span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--rp-muted);
+}
+
+.rp-translation p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.rp-cards {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: 8px;
+}
+
+.rp-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  border: 1px solid rgb(128 128 128 / .24);
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: rgb(128 128 128 / .05);
+}
+
+.rp-card:first-child {
+  border-color: rgb(138 130 255 / .45);
+  background: rgb(138 130 255 / .045);
+}
+
+.rp-card-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.rp-card-label span {
+  color: var(--rp-muted);
+  font-family: Consolas, monospace;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.rp-card-content {
+  flex: 1 1 240px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rp-card-english {
+  margin: 4px 0 2px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.rp-card-note {
+  margin: 0;
+  color: var(--rp-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.rp-card-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+.rp-loading,
+.rp-empty {
+  flex: 1;
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--rp-muted);
+  font-size: 12px;
+}
+
+.rp-empty {
+  align-content: center;
+  gap: 14px;
+}
+
+.rp-empty p {
+  margin: 0;
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+.rp-empty-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(138 130 255 / .45);
+  border-radius: 12px;
+  color: rgb(138 130 255 / .95);
+  font: 700 12px/1 Consolas, monospace;
+}
+
+@media (max-width: 860px) {
+  .rp-body {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .rp-input-column {
+    overflow: visible;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--rp-border);
+  }
+
+  .rp-results {
+    overflow: visible;
+  }
+}

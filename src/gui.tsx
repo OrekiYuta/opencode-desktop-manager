@@ -29,6 +29,8 @@ import {
 import { UsageRpc, type UsageResult } from "./github-copilot-usage/rpc"
 import { formatUsageDate, isCreditQuota, usedPercentage } from "./github-copilot-usage/view"
 import usageCss from "./github-copilot-usage/usage.css?inline"
+import rightPhraseCss from "./right-phrase/right-phrase.css?inline"
+import { setupRightPhrase } from "./right-phrase/index"
 
 const PAGE_SIZE = 100
 
@@ -166,7 +168,9 @@ const definition = Plugin.define({
     ctx.add(Style, favoritesCss)
     ctx.add(Style, modelTesterCss)
     ctx.add(Style, usageCss)
+    ctx.add(Style, rightPhraseCss)
     setupModelTester(ctx)
+    setupRightPhrase(ctx)
 
     const builtinServer = () => ctx.servers.list().map((id) => ctx.servers.get(id)).find((server) => server?.builtin)
     const pinned = () => ctx.stores.state.value.pinned

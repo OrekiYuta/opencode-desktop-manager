@@ -1,6 +1,6 @@
 # opencode-desktop-manager
 
-A session management, favorites, and Copilot Fusion router plugin for **OpenCode V2**.
+A session management, favorites, Copilot Fusion router, and bilingual writing plugin for **OpenCode V2**.
 
 ## Features
 
@@ -16,6 +16,12 @@ A session management, favorites, and Copilot Fusion router plugin for **OpenCode
 - **Model Tester (GUI Plugin):**
   - Instant latency and functional testing for all enabled models directly inside OpenCode's Model Settings dialog.
   - Visual badges with latency metrics, status tooltips, and re-test capabilities.
+- **Right Phrase (GUI Plugin):**
+  - **Say it:** Turns Chinese into five natural English expressions ordered from casual to formal, each with a short tone note.
+  - **Reply:** Translates a received English message into Chinese and suggests five English replies with their Chinese meanings.
+  - Opens from the titlebar or the command palette (`/right-phrase`). Uses the model and variant currently selected in the session composer; without an open session it uses the OpenCode service default.
+  - Generates only on request, supports cancellation and a timeout, and never sends anything automatically. Results can be copied or inserted into the composer for review.
+  - Does not save history and does not read the current conversation, project files, or clipboard.
 - **Session Manager (GUI Plugin):**
   - **Session Header (☆ / ★):** Click **☆ Favorite this session** in the timeline header to save the session. The button toggles to **★ Favorited**; click again to unfavorite. Compact headers show only the star. Each session tracks its own state.
   - **Titlebar Entry:** A persistent **Session Manager** button in the window titlebar opens the floating manager dialog directly, without navigating to Settings.
@@ -77,6 +83,15 @@ Clone the repository and reference its local directory in `~/.config/opencode/op
 The GitHub username is fetched separately and may be unavailable even when usage is available. Credit values and percentages are shown only when the response establishes a token-billed, finite quota. Unlimited, non-token-billed, missing or unrecognized fields are not treated as AI credits. Dates are displayed in the local time zone.
 
 The GUI plugin API is experimental; button placement and compatibility depend on the Desktop release. Usage is for the active account, not the current conversation. The endpoint and field meanings are based on observed responses and may differ by plan; they are not a stable GitHub public API.
+
+## Use Right Phrase
+
+1. Open a session, then click **Right Phrase** in the titlebar or search for **Open Right Phrase** in the command palette. You can also run `/right-phrase <text>`.
+2. Choose **Say it** to rewrite Chinese into English, or **Reply** to translate received English and draft replies.
+3. Select **Generate phrases** or **Generate replies**. To change models, use the session composer before generating. Free models cannot be used for this feature, so switch to another model first.
+4. Copy any result, or select **Insert** to place it in the composer. Nothing is sent automatically.
+
+The selected provider receives the text you submit. The plugin keeps no history and does not read the session, files, or clipboard on its own. Generation is cancelled when the dialog closes, and a 45-second timeout prevents a stuck request.
 
 ## Development & Build
 
