@@ -886,43 +886,119 @@ const definition = Plugin.define({
       )
 
       const content = () => (
-        <div class="odm-manager-sections">
-          <ui.SettingsSection title={ctx.t("settings.pinned")}>
-            <Show
-              when={favoriteGroups().length > 0}
-              fallback={
-                <ui.SettingsRow
-                  title={ctx.t(pinned().length ? "settings.emptyFavoriteMatches" : "settings.emptyPinned")}
-                />
-              }
-            >
-              <For each={favoriteGroups()}>
+        <div class="odm-manager-layout">
+          <div class="odm-manager-pane odm-favorites-pane" role="region" aria-label={ctx.t("settings.pinned")} tabIndex={0}>
+            <ui.SettingsSection title={ctx.t("settings.pinned")}>
+              <Show
+                when={favoriteGroups().length > 0}
+                fallback={
+                  <ui.SettingsRow
+                    title={ctx.t(pinned().length ? "settings.emptyFavoriteMatches" : "settings.emptyPinned")}
+                  />
+                }
+              >
+                <For each={favoriteGroups()}>
+                  {(group) => (
+                    <ProjectGroupSection
+                      title={group.title}
+                      directory={group.directory}
+                      count={group.sessions.length}
+                      expanded={expanded(`favorites:${group.key}`)}
+                      onToggle={() => toggleProject(`favorites:${group.key}`)}
+                    >
+                      <SessionCardGrid
+                        sessions={group.sessions}
+                        renderCard={(session) => (
+                          <div class="odm-session-card">
+                            <ui.SettingsRow title={session.title} description={session.description}>
+                              <div class="odm-session-actions">
+                                <ui.Button
+                                  variant="neutral"
+                                  onClick={() => {
+                                    void openSessionInApp(session).then((opened) => {
+                                      if (opened) props.dialog.close()
+                                    })
+                                  }}
+                                >
+                                  {ctx.t("action.open")}
+                                </ui.Button>
+                                <ui.Button variant="neutral" onClick={() => removeFavorite(session)}>
+                                  {ctx.t("action.unpin")}
+                                </ui.Button>
+                              </div>
+                            </ui.SettingsRow>
+                          </div>
+                        )}
+                      />
+                    </ProjectGroupSection>
+                  )}
+                </For>
+              </Show>
+            </ui.SettingsSection>
+          </div>
+
+          <div class="odm-manager-pane odm-recent-pane" role="region" aria-label={ctx.t("settings.recent")} tabIndex={0}>
+            <ui.SettingsSection title={ctx.t("settings.recent")}>
+              <Show when={error()}>
+                <ui.SettingsRow title={ctx.t("error.load")} />
+              </Show>
+              <Show when={loading() && sessions().length === 0}>
+                <ui.SettingsRow title={ctx.t("settings.loading")}>
+                  <ui.Loader size="small" />
+                </ui.SettingsRow>
+              </Show>
+              <Show when={!loading() && !error() && recentGroups().length === 0}>
+                <ui.SettingsRow title={ctx.t("settings.emptyRecent")} />
+              </Show>
+              <For each={recentGroups()}>
                 {(group) => (
                   <ProjectGroupSection
                     title={group.title}
                     directory={group.directory}
                     count={group.sessions.length}
-                    expanded={expanded(`favorites:${group.key}`)}
-                    onToggle={() => toggleProject(`favorites:${group.key}`)}
+                    expanded={expanded(`recent:${group.key}`)}
+                    onToggle={() => toggleProject(`recent:${group.key}`)}
                   >
                     <SessionCardGrid
                       sessions={group.sessions}
                       renderCard={(session) => (
                         <div class="odm-session-card">
-                          <ui.SettingsRow title={session.title} description={session.description}>
+                          <ui.SettingsRow
+                            title={session.title || ctx.t("settings.untitled")}
+                            description={updatedDescription(session.time.updated)}
+                          >
                             <div class="odm-session-actions">
                               <ui.Button
                                 variant="neutral"
                                 onClick={() => {
-                                  void openSessionInApp(session).then((opened) => {
+                                  void openSessionInApp({ id: session.id }).then((opened) => {
                                     if (opened) props.dialog.close()
                                   })
                                 }}
                               >
                                 {ctx.t("action.open")}
                               </ui.Button>
-                              <ui.Button variant="neutral" onClick={() => removeFavorite(session)}>
-                                {ctx.t("action.unpin")}
+                              <ui.Button
+                                variant="neutral"
+                                onClick={() =>
+                                  togglePin(session.id, session.title || "", builtinServer(), {
+                                    projectID: session.projectID,
+                                    directory: session.location.directory,
+                                  })
+                                }
+                              >
+                                {ctx.t("action.pin")}
+                              </ui.Button>
+                              <ui.Button
+                                variant="danger"
+                                onClick={() =>
+                                  void deleteSingleSession({
+                                    id: session.id,
+                                    title: session.title || ctx.t("settings.untitled"),
+                                  })
+                                }
+                              >
+                                {ctx.t("deleteSession.confirm")}
                               </ui.Button>
                             </div>
                           </ui.SettingsRow>
@@ -932,92 +1008,20 @@ const definition = Plugin.define({
                   </ProjectGroupSection>
                 )}
               </For>
-            </Show>
-          </ui.SettingsSection>
-
-          <ui.SettingsSection title={ctx.t("settings.recent")}>
-            <Show when={error()}>
-              <ui.SettingsRow title={ctx.t("error.load")} />
-            </Show>
-            <Show when={loading() && sessions().length === 0}>
-              <ui.SettingsRow title={ctx.t("settings.loading")}>
-                <ui.Loader size="small" />
-              </ui.SettingsRow>
-            </Show>
-            <Show when={!loading() && !error() && recentGroups().length === 0}>
-              <ui.SettingsRow title={ctx.t("settings.emptyRecent")} />
-            </Show>
-            <For each={recentGroups()}>
-              {(group) => (
-                <ProjectGroupSection
-                  title={group.title}
-                  directory={group.directory}
-                  count={group.sessions.length}
-                  expanded={expanded(`recent:${group.key}`)}
-                  onToggle={() => toggleProject(`recent:${group.key}`)}
-                >
-                  <SessionCardGrid
-                    sessions={group.sessions}
-                    renderCard={(session) => (
-                      <div class="odm-session-card">
-                        <ui.SettingsRow
-                          title={session.title || ctx.t("settings.untitled")}
-                          description={updatedDescription(session.time.updated)}
-                        >
-                          <div class="odm-session-actions">
-                            <ui.Button
-                              variant="neutral"
-                              onClick={() => {
-                                void openSessionInApp({ id: session.id }).then((opened) => {
-                                  if (opened) props.dialog.close()
-                                })
-                              }}
-                            >
-                              {ctx.t("action.open")}
-                            </ui.Button>
-                            <ui.Button
-                              variant="neutral"
-                              onClick={() =>
-                                togglePin(session.id, session.title || "", builtinServer(), {
-                                  projectID: session.projectID,
-                                  directory: session.location.directory,
-                                })
-                              }
-                            >
-                              {ctx.t("action.pin")}
-                            </ui.Button>
-                            <ui.Button
-                              variant="danger"
-                              onClick={() =>
-                                void deleteSingleSession({
-                                  id: session.id,
-                                  title: session.title || ctx.t("settings.untitled"),
-                                })
-                              }
-                            >
-                              {ctx.t("deleteSession.confirm")}
-                            </ui.Button>
-                          </div>
-                        </ui.SettingsRow>
-                      </div>
-                    )}
-                  />
-                </ProjectGroupSection>
-              )}
-            </For>
-            <Show when={nextCursor()}>
-              <ui.SettingsRow title={ctx.t("settings.moreSessions")}>
-                <ui.Button
-                  variant="ghost"
-                  onClick={() => void loadSessions(true)}
-                  disabled={loading()}
-                  busy={loading()}
-                >
-                  {ctx.t("settings.loadMore")}
-                </ui.Button>
-              </ui.SettingsRow>
-            </Show>
-          </ui.SettingsSection>
+              <Show when={nextCursor()}>
+                <ui.SettingsRow title={ctx.t("settings.moreSessions")}>
+                  <ui.Button
+                    variant="ghost"
+                    onClick={() => void loadSessions(true)}
+                    disabled={loading()}
+                    busy={loading()}
+                  >
+                    {ctx.t("settings.loadMore")}
+                  </ui.Button>
+                </ui.SettingsRow>
+              </Show>
+            </ui.SettingsSection>
+          </div>
         </div>
       )
 

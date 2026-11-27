@@ -27,6 +27,8 @@ styles.textContent = `
   .fixture-session-title { font-size: 13px; }
   .fixture-session-description { font-size: 11px; color: #738095; }
   .fixture-action { padding: 4px 10px; border: 1px solid #dce3ec; border-radius: 5px; background: white; color: #293546; font: inherit; font-size: 12px; cursor: pointer; }
+  .fixture-layout-preview { width: min(100%, 1100px); margin: 12px auto; padding: 14px; border: 1px solid #dce3ec; border-radius: 8px; background: white; }
+  .fixture-layout-preview h3 { margin: 0 0 10px; font-size: 13px; }
   @media(max-width: 500px) { body { padding: 20px 12px; } section { padding: 16px; } }
 `
 document.head.append(styles)
@@ -161,6 +163,34 @@ function Fixture() {
         <output id="fixture-result">
           Last Opened: {opened()} · Open Count: {openCount()} · Total Favorites: {favorites().length}
         </output>
+      </section>
+
+      <section>
+        <h2>Responsive Split Layout</h2>
+        <p>Resize the browser to check the actual two-pane and stacked container-query breakpoints.</p>
+        <div class="fixture-layout-preview">
+          <h3>Session Manager</h3>
+          <div class="odm-manager-dialog">
+            <div class="odm-manager-layout">
+              <div class="odm-manager-pane odm-favorites-pane" role="region" aria-label="Favorite sessions" tabIndex={0}>
+                <h3>Favorite sessions</h3>
+                <FixtureCards
+                  sessions={favorites()}
+                  onOpen={(session) => setOpened(session.id)}
+                  onRemove={(session) => setFavorites((items) => items.filter((item) => item.id !== session.id))}
+                />
+              </div>
+              <div class="odm-manager-pane odm-recent-pane" role="region" aria-label="Recent sessions" tabIndex={0}>
+                <h3>Recent sessions</h3>
+                <FixtureCards
+                  sessions={initial}
+                  onOpen={(session) => setOpened(session.id)}
+                  onRemove={() => undefined}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="fixture-project-groups">

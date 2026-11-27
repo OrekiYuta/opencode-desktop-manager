@@ -30,8 +30,9 @@ A session management, favorites, Copilot Fusion router, and bilingual writing pl
     - Favorite sessions start **expanded** by default.
     - **Expand all projects** and **Collapse all projects** buttons allow fast bulk toggling.
   - **Quick Search:** Live search filters by project name, directory path, session title, and session ID. Matching groups automatically expand. Clearing the search restores previous fold states.
+  - **Split-Pane Layout:** Favorites appear in a left pane and recent sessions in a wider right pane. Both panes scroll independently, and the layout falls back to stacked sections on narrower dialogs or windows.
   - **Open Recent Sessions:** Each recent session card has an **Open** button beside **Favorite** and **Delete**. It switches the desktop app to that session and closes the manager, using the same availability check as opening a favorite.
-  - **Two-Column Session Cards:** Favorites and recent sessions render as two-column cards. Favorite cards offer **Open** and **Unfavorite**; recent cards offer **Open**, **Favorite**, and **Delete**. **Unfavorite only removes the entry—it never deletes actual chat history**.
+  - **Session Cards:** Cards adapt to the available pane width. Favorite cards offer **Open** and **Unfavorite**; recent cards offer **Open**, **Favorite**, and **Delete**. **Unfavorite only removes the entry—it never deletes actual chat history**.
   - **Cross-Project Cleanup with Confirmation:** Bulk delete unpinned, non-archived root sessions and their child sessions across projects with safety confirmation. Favorites are strictly protected.
   - **Seamless Migration:** Automatically imports past bookmarks and pins from legacy `opencode-ui-manager` stores if present.
 
